@@ -69,14 +69,14 @@ def backup_ccache():
     jalankan_perintah(perintah_upload, "Upload Ccache")
 
 def utama():
-    link_manifest = "https://github.com/LineageOS/android.git"
-    branch_rom = "lineage-20.0" 
+    link_manifest = "https://github.com/lineageos-q-mean/android.git"
+    branch_rom = "lineage-17.1" 
     codename_device = "X00TD"
     
     repositori_perangkat = [
-        {"nama": "Device Tree", "url": "https://github.com/LineageOS/android_device_asus_X00TD.git", "branch": "lineage-20.0", "path": "device/asus/X00TD"},
-        {"nama": "Vendor Tree", "url": "https://github.com/RepositoriPrivatAnda/vendor_asus.git", "branch": "lineage-20.0", "path": "vendor/asus"},
-        {"nama": "Kernel Tree", "url": "https://github.com/LineageOS/android_kernel_asus_sdm660.git", "branch": "lineage-20.0", "path": "kernel/asus/sdm660"}
+        {"nama": "Device Tree", "url": "https://github.com/lineagos-q-mean/android_device_asus_X00TD.git", "branch": "lineage-17.1", "path": "device/asus/X00TD"},
+        {"nama": "Vendor Tree", "url": "https://github.com/lineageos-q-mean/proprietary_vendor_asus.git", "branch": "lineage-17.1", "path": "vendor/asus"},
+        {"nama": "Common Tree", "url": "https://github.com/lineageos-q-mean/android_kernel_asus_sdm660.git", "branch": "lineage-17.1", "path": "device/asus/sdm660-common"}
     ]
     
     kirim_telegram(f"🚀 <b>Mulai Build ROM!</b>\n\n<b>Perangkat:</b> {codename_device}\n<b>ROM:</b> LineageOS ({branch_rom})")
@@ -85,7 +85,7 @@ def utama():
     jalankan_perintah("git config --global user.email 'bot@cirrus.ci'", "Git Email")
     setup_kredensial_git()
 
-    jalankan_perintah(f"repo init -u {link_manifest} -b {branch_rom} --depth=1", "Repo Init")
+    jalankan_perintah(f"repo init -u {link_manifest} -b {branch_rom} --depth=1 --git-lfs", "Repo Init")
 
     kirim_telegram("🔄 <b>Status:</b> Sinkronisasi source utama...")
     jalankan_perintah("repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j8", "Repo Sync")
