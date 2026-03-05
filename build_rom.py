@@ -88,7 +88,12 @@ def utama():
     jalankan_perintah(f"repo init -u {link_manifest} -b {branch_rom} --depth=1", "Repo Init")
 
     kirim_telegram("🔄 <b>Status:</b> Sinkronisasi source utama...")
-    jalankan_perintah("repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j$(nproc --all)", repo forall -c 'git lfs install && git lfs pull && git lfs checkout', "Repo Sync")
+    jalankan_perintah("repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j$(nproc --all)", "Repo Sync")
+
+    # --- 3.5. GIT LFS PULL UNTUK REPO UTAMA (BAGIAN BARU) ---
+    kirim_telegram("📦 <b>Status:</b> Menarik file berukuran besar (Git LFS) dari repo utama...")
+    # Menjalankan perintah forall ke seluruh repositori yang disinkronkan
+    jalankan_perintah("repo forall -c 'git lfs install && git lfs pull && git lfs checkout'", "Repo Forall Git LFS")
 
     kirim_telegram("📥 <b>Status:</b> Mengkloning Device, Vendor, dan Kernel Tree...")
     for repo in repositori_perangkat:
