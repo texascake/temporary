@@ -12,5 +12,6 @@ task:
     GH_TOKEN: ENCRYPTED[58f6a7bba39b971a3cbc817bf63384b5a18977499ffa12487eda21b77e0e552d640163be2a21162cd7267f58836690e4] # For private repo(s)
 
   build_script:
-    - sudo apt-get update && sudo apt-get install -y rclone rsync
+    - sudo apt-get update && sudo apt-get install -y rclone rsync git-lfs && git lfs install
+    - repo forall -c 'git lfs install && git lfs pull && git lfs checkout'
     - python3 build_rom.py
