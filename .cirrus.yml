@@ -16,6 +16,8 @@ task:
   # 1. Menginstal alat yang dibutuhkan
   install_script:
     - sudo apt-get update && sudo apt-get install -y rclone git-lfs python3
+    - pwd
+    - ls -la
 
   # 2. Menyiapkan kredensial dan inisialisasi Repo
   setup_script:
