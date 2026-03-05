@@ -18,7 +18,7 @@ FILE_ID_PESAN = "/tmp/tg_msg.txt"
 LINK_MANIFEST = "https://github.com/keepQASSA/manifest-kasa"
 BRANCH_ROM = "Q_kasa"
 CODENAME_DEVICE = "X00T"
-GAMBAR_BANNER = "https://github.com/texascake/texascake/raw/refs/heads/main/los.png"
+GAMBAR_BANNER = "https://raw.githubusercontent.com/texascake/texascake/refs/heads/main/keepqassa2.png"
 
 REPOSITORI_PERANGKAT = [
     {"nama": "Device Tree", "url": "https://github.com/texascake/android_device_asus_X00TD", "branch": "qassa", "path": "device/asus/X00T"},
