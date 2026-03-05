@@ -10,6 +10,7 @@ BOT_TOKEN = os.environ.get('TG_BOT_TOKEN')
 CHAT_ID = os.environ.get('TG_CHAT_ID')
 RCLONE_CONF = os.environ.get('RCLONE_CONF')
 GH_TOKEN = os.environ.get('GH_TOKEN')
+GH_USERNAME = os.environ.get('GH_USERNAME')
 
 def kirim_telegram(pesan):
     if not BOT_TOKEN or not CHAT_ID: return
@@ -45,9 +46,9 @@ def upload_rom(path_file):
         return None
 
 def setup_kredensial_git():
-    if not GH_TOKEN: return
+    if not GH_USERNAME GH_TOKEN: return
     print("\n[INFO] Mengatur kredensial Git untuk repositori privat...")
-    perintah_kredensial = f'git config --global url."https://{GH_TOKEN}@github.com/".insteadOf "https://github.com/"'
+    perintah_kredensial = f'git config --global url."https://{GH_USERNAME}:{GH_TOKEN}@github.com/".insteadOf "https://github.com/"'
     subprocess.run(perintah_kredensial, shell=True)
     print("[INFO] Kredensial Git berhasil diatur secara rahasia!")
 
