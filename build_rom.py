@@ -111,7 +111,7 @@ def utama():
     export CCACHE_DIR=/tmp/ccache
     export CCACHE_EXEC=$(which ccache)
     ccache -M 50G
-    source build/envsetup.sh && breakfast X00TD userdebug && brunch X00TD
+    timeout 95m bash -c 'source build/envsetup.sh && breakfast X00TD userdebug && brunch X00TD'
     """
     
     # --- LOGIKA BARU UNTUK BUILD & CCACHE ---
