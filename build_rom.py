@@ -60,12 +60,12 @@ def siapkan_rclone():
 
 def restore_ccache():
     kirim_telegram("🔄 <b>Status:</b> Mengunduh ccache dari Google Drive...")
-    perintah_download = "rclone copy gdrive:ccache_X00TD/ccache.tar.gz /tmp/ && tar -xzf /tmp/ccache.tar.gz -C /tmp"
+    perintah_download = "rclone copy GDrive:lineage/ccache.tar.gz /tmp/ && tar -xzf /tmp/ccache.tar.gz -C /tmp"
     jalankan_perintah(perintah_download, "Download Ccache", abaikan_error=True)
 
 def backup_ccache():
     kirim_telegram("☁️ <b>Status:</b> Mengompres dan menyimpan ccache ke Google Drive...")
-    perintah_upload = "tar -czf /tmp/ccache.tar.gz -C /tmp ccache && rclone copy /tmp/ccache.tar.gz gdrive:ccache_X00TD/"
+    perintah_upload = "tar -czf /tmp/ccache.tar.gz -C /tmp ccache && rclone copy /tmp/ccache.tar.gz GDrive:lineage/"
     jalankan_perintah(perintah_upload, "Upload Ccache")
 
 def utama():
@@ -88,8 +88,7 @@ def utama():
     jalankan_perintah(f"repo init -u {link_manifest} -b {branch_rom} --depth=1", "Repo Init")
 
     kirim_telegram("🔄 <b>Status:</b> Sinkronisasi source utama...")
-    jalankan_perintah("repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j$(nproc --all)", "Repo Sync")
-    jalankan_perintah("repo forall -c 'git lfs install && git lfs pull && git lfs checkout'")
+    jalankan_perintah("repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j$(nproc --all)", repo forall -c 'git lfs install && git lfs pull && git lfs checkout', "Repo Sync")
 
     kirim_telegram("📥 <b>Status:</b> Mengkloning Device, Vendor, dan Kernel Tree...")
     for repo in repositori_perangkat:
