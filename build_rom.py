@@ -85,7 +85,7 @@ def utama():
     jalankan_perintah("git config --global user.email 'bot@cirrus.ci'", "Git Email")
     setup_kredensial_git()
 
-    jalankan_perintah(f"repo init -u {link_manifest} -b {branch_rom} --depth=1 --git-lfs", "Repo Init")
+    jalankan_perintah(f"repo init -u {link_manifest} -b {branch_rom} --depth=1", "Repo Init")
 
     kirim_telegram("🔄 <b>Status:</b> Sinkronisasi source utama...")
     jalankan_perintah("repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j$(nproc --all)", "Repo Sync")
