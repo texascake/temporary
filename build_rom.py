@@ -11,12 +11,14 @@ CHAT_ID = os.environ.get('TG_CHAT_ID')
 RCLONE_CONF = os.environ.get('RCLONE_CONF')
 GH_TOKEN = os.environ.get('GH_TOKEN')
 GH_USERNAME = os.environ.get('GH_USERNAME')
+CIRRUS_TASK_ID = os.environ.get('CIRRUS_TASK_ID')
 
 FILE_ID_PESAN = "/tmp/tg_msg.txt"
 
 LINK_MANIFEST = "https://github.com/lineageos-q-mean/android.git"
 BRANCH_ROM = "lineage-17.1"
 CODENAME_DEVICE = "X00TD"
+GAMBAR_BANNER = "https://github.com/texascake/texascake/raw/refs/heads/main/los.png"
 
 REPOSITORI_PERANGKAT = [
     {"nama": "Device Tree", "url": "https://github.com/lineageos-q-mean/android_device_asus_X00TD.git", "branch": "lineage-17.1", "path": "device/asus/X00TD"},
@@ -36,22 +38,39 @@ def kirim_telegram(pesan):
     if not BOT_TOKEN or not CHAT_ID: return
     id_pesan = dapatkan_id_pesan()
     
-    teks_dasar = f"🚀 <b>Build ROM {CODENAME_DEVICE}</b>\n<b>ROM:</b> LineageOS ({BRANCH_ROM})\n\n{pesan}"
+    if CIRRUS_TASK_ID:
+        link_log = f"https://cirrus-ci.com/task/{CIRRUS_TASK_ID}"
+        teks_link = f"🔗 <a href='{link_log}'>View Live Logs</a>"
+    else:
+        teks_link = "🔗 <i>Link Log tidak tersedia (Berjalan Lokal)</i>"
+    
+    teks_dasar = f"🚀 <b>Build ROM for {CODENAME_DEVICE}</b>\n<b>ROM:</b> LineageOS ({BRANCH_ROM})\n{teks_link}\n\n{pesan}"
 
     if id_pesan is None:
-        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-        data = urllib.parse.urlencode({'chat_id': CHAT_ID, 'text': teks_dasar, 'parse_mode': 'HTML'}).encode('utf-8')
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
+        data = urllib.parse.urlencode({
+            'chat_id': CHAT_ID, 
+            'photo': GAMBAR_BANNER,
+            'caption': teks_dasar,
+            'parse_mode': 'HTML'
+        }).encode('utf-8')
         try:
             req = urllib.request.Request(url, data=data)
             with urllib.request.urlopen(req) as respons:
                 hasil = json.loads(respons.read().decode('utf-8'))
                 if hasil.get('ok'): simpan_id_pesan(hasil['result']['message_id'])
-        except Exception as e: print(f"[Error] Telegram Awal: {e}")
+        except Exception as e: print(f"[Error] Telegram Awal: {e}", flush=True)
+        
     else:
-        url = f"https://api.telegram.org/bot{BOT_TOKEN}/editMessageText"
-        data = urllib.parse.urlencode({'chat_id': CHAT_ID, 'message_id': id_pesan, 'text': teks_dasar, 'parse_mode': 'HTML'}).encode('utf-8')
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/editMessageCaption"
+        data = urllib.parse.urlencode({
+            'chat_id': CHAT_ID, 
+            'message_id': id_pesan, 
+            'caption': teks_dasar,
+            'parse_mode': 'HTML'
+        }).encode('utf-8')
         try: urllib.request.urlopen(urllib.request.Request(url, data=data))
-        except Exception as e: print(f"[Error] Telegram Edit: {e}")
+        except Exception as e: print(f"[Error] Telegram Edit: {e}", flush=True)
 
 def jalankan_perintah(perintah, pesan_gagal, abaikan_error=False):
     print(f"\n[INFO] Menjalankan: {perintah}\n" + "="*40)
@@ -102,13 +121,13 @@ def tahap_build():
         kirim_telegram("🔄 <b>Status:</b> Mengunduh ccache dari Google Drive...")
         jalankan_perintah("rclone copy queen:reload/ccache.tar.gz /tmp/ && tar -xzf /tmp/ccache.tar.gz -C /tmp", "Download Ccache", abaikan_error=True)
 
-    kirim_telegram("⚙️ <b>Status:</b> Memulai kompilasi (brunch)...")
+    kirim_telegram("⏳ <b>Status:</b> Sedang memulai kompilasi...")
     perintah_build = f"""
     export USE_CCACHE=1
     export CCACHE_DIR=/tmp/ccache
     export CCACHE_EXEC=$(which ccache)
     ccache -M 50G
-    timeout 110m bash -c 'source build/envsetup.sh && breakfast {CODENAME_DEVICE} userdebug && brunch {CODENAME_DEVICE}'
+    timeout 95m bash -c 'source build/envsetup.sh && breakfast {CODENAME_DEVICE} userdebug && brunch {CODENAME_DEVICE}'
     """
     sukses_build = jalankan_perintah(perintah_build, "Kompilasi ROM", abaikan_error=True)
 
@@ -125,7 +144,7 @@ def tahap_build():
 
 def tahap_upload():
     kirim_telegram("🔍 <b>Status:</b> Build sukses! Mengunggah ROM ke Google Drive...")
-    siapkan_rclone() # Pastikan rclone siap di tahap ini
+    siapkan_rclone()
     
     daftar_file_zip = glob.glob(f"out/target/product/{CODENAME_DEVICE}/lineage-*.zip")
     if daftar_file_zip:
