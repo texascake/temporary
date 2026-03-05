@@ -68,11 +68,31 @@ def jalankan_perintah(perintah, pesan_gagal, abaikan_error=False): # set to true
     return proses.returncode == 0 # Mengembalikan True jika sukses, False jika gagal
 
 def upload_rom(path_file):
-    print(f"\n[INFO] Mengunggah {path_file} ke transfer.sh...")
+    nama_file = os.path.basename(path_file)
+    print(f"\n[INFO] Mengunggah {nama_file} ke Google Drive menggunakan Rclone...")
+    
+    # Kita buat folder bernama "ROM_Builds" di Google Drive Anda
+    tujuan_drive = "queen:ROM_Builds"
+    
+    # Perintah 1: Mengunggah file .zip ke Drive
+    perintah_upload = f'rclone copy "{path_file}" "{tujuan_drive}/"'
+    
+    # Perintah 2: Meminta Rclone membuatkan link download publik
+    perintah_link = f'rclone link "{tujuan_drive}/{nama_file}"'
+    
     try:
-        hasil = subprocess.check_output(f'curl --upload-file "{path_file}" https://transfer.sh/{os.path.basename(path_file)}', shell=True, executable='/bin/bash')
-        return hasil.decode('utf-8').strip()
-    except subprocess.CalledProcessError:
+        # Jalankan proses upload
+        subprocess.check_call(perintah_upload, shell=True, executable='/bin/bash')
+        print("[INFO] Upload selesai. Mengambil link publik...")
+        
+        # Jalankan proses ambil link
+        hasil_link = subprocess.check_output(perintah_link, shell=True, executable='/bin/bash')
+        link_download = hasil_link.decode('utf-8').strip()
+        
+        return link_download
+    
+    except subprocess.CalledProcessError as e:
+        print(f"[ERROR] Gagal mengunggah ROM ke Drive: {e}")
         return None
 
 def setup_kredensial_git():
