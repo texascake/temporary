@@ -74,9 +74,9 @@ def utama():
     codename_device = "X00TD"
     
     repositori_perangkat = [
-        {"nama": "Device Tree", "url": "https://github.com/lineagos-q-mean/android_device_asus_X00TD.git", "branch": "lineage-17.1", "path": "device/asus/X00TD"},
+        {"nama": "Device Tree", "url": "https://github.com/lineageos-q-mean/android_device_asus_X00TD.git", "branch": "lineage-17.1", "path": "device/asus/X00TD"},
         {"nama": "Vendor Tree", "url": "https://github.com/lineageos-q-mean/proprietary_vendor_asus.git", "branch": "lineage-17.1", "path": "vendor/asus"},
-        {"nama": "Common Tree", "url": "https://github.com/lineageos-q-mean/android_kernel_asus_sdm660.git", "branch": "lineage-17.1", "path": "device/asus/sdm660-common"}
+        {"nama": "Common Tree", "url": "https://github.com/lineageos-q-mean/android_device_asus_sdm660-common.git", "branch": "lineage-17.1", "path": "device/asus/sdm660-common"}
     ]
     
     kirim_telegram(f"🚀 <b>Mulai Build ROM!</b>\n\n<b>Perangkat:</b> {codename_device}\n<b>ROM:</b> LineageOS ({branch_rom})")
