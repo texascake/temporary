@@ -88,7 +88,7 @@ def tahap_sync():
     jalankan_perintah("repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j$(nproc --all)", "Repo Sync")
     
     kirim_telegram("📦 <b>Status:</b> Menarik file Git LFS dari repo utama...")
-    jalankan_perintah("repo forall -c 'git lfs install && git lfs pull && git lfs checkout'", "Repo Forall Git LFS")
+    jalankan_perintah("repo forall -c 'git lfs install --local && git lfs pull && git lfs checkout'", "Repo Forall Git LFS")
 
 def tahap_clone():
     kirim_telegram("📥 <b>Status:</b> Mengkloning Device, Vendor, dan Kernel Tree...")
