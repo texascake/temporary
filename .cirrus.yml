@@ -6,7 +6,7 @@ env:
   GH_USERNAME: "ENCRYPTED[4c2b0c1f0745d2ca58e27b76021355cdefd673b7c3e16e4c6bda58ec22f8c0258e180c0513e0b2f629d9e9824c6baf0b]"
 
 task:
-  name: Build LineageOS ROM
+  name: Build QASSA ROM
   timeout_in: 120m
   container:
     image: inok2341/anu:latest

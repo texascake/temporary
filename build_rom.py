@@ -15,15 +15,14 @@ CIRRUS_TASK_ID = os.environ.get('CIRRUS_TASK_ID')
 
 FILE_ID_PESAN = "/tmp/tg_msg.txt"
 
-LINK_MANIFEST = "https://github.com/lineageos-q-mean/android.git"
-BRANCH_ROM = "lineage-17.1"
-CODENAME_DEVICE = "X00TD"
+LINK_MANIFEST = "https://github.com/keepQASSA/manifest-kasa"
+BRANCH_ROM = "Q_kasa"
+CODENAME_DEVICE = "X00T"
 GAMBAR_BANNER = "https://github.com/texascake/texascake/raw/refs/heads/main/los.png"
 
 REPOSITORI_PERANGKAT = [
-    {"nama": "Device Tree", "url": "https://github.com/lineageos-q-mean/android_device_asus_X00TD.git", "branch": "lineage-17.1", "path": "device/asus/X00TD"},
-    {"nama": "Vendor Tree", "url": "https://github.com/lineageos-q-mean/proprietary_vendor_asus.git", "branch": "lineage-17.1", "path": "vendor/asus"},
-    {"nama": "Common Tree", "url": "https://github.com/lineageos-q-mean/android_device_asus_sdm660-common.git", "branch": "lineage-17.1", "path": "device/asus/sdm660-common"}
+    {"nama": "Device Tree", "url": "https://github.com/texascake/android_device_asus_X00TD", "branch": "qassa", "path": "device/asus/X00T"},
+    {"nama": "Vendor Tree", "url": "https://github.com/Tiktodz/vendor_asus", "branch": "qassa", "path": "vendor/asus"},
 ]
 
 def dapatkan_id_pesan():
@@ -37,19 +36,19 @@ def simpan_id_pesan(msg_id):
 def kirim_telegram(pesan):
     if not BOT_TOKEN or not CHAT_ID: return
     id_pesan = dapatkan_id_pesan()
-    
+
     if CIRRUS_TASK_ID:
         link_log = f"https://cirrus-ci.com/task/{CIRRUS_TASK_ID}"
         teks_link = f"🔗 <a href='{link_log}'>View Live Logs</a>"
     else:
         teks_link = "🔗 <i>Link Log tidak tersedia (Berjalan Lokal)</i>"
-    
-    teks_dasar = f"🚀 <b>Build ROM for {CODENAME_DEVICE}</b>\n<b>ROM:</b> LineageOS ({BRANCH_ROM})\n{teks_link}\n\n{pesan}"
+
+    teks_dasar = f"🚀 <b>Build ROM for {CODENAME_DEVICE}</b>\n<b>ROM:</b> KeepQassa ({BRANCH_ROM})\n{teks_link}\n\n{pesan}"
 
     if id_pesan is None:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
         data = urllib.parse.urlencode({
-            'chat_id': CHAT_ID, 
+            'chat_id': CHAT_ID,
             'photo': GAMBAR_BANNER,
             'caption': teks_dasar,
             'parse_mode': 'HTML'
@@ -60,12 +59,12 @@ def kirim_telegram(pesan):
                 hasil = json.loads(respons.read().decode('utf-8'))
                 if hasil.get('ok'): simpan_id_pesan(hasil['result']['message_id'])
         except Exception as e: print(f"[Error] Telegram Awal: {e}", flush=True)
-        
+
     else:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/editMessageCaption"
         data = urllib.parse.urlencode({
-            'chat_id': CHAT_ID, 
-            'message_id': id_pesan, 
+            'chat_id': CHAT_ID,
+            'message_id': id_pesan,
             'caption': teks_dasar,
             'parse_mode': 'HTML'
         }).encode('utf-8')
@@ -77,7 +76,7 @@ def jalankan_perintah(perintah, pesan_gagal, abaikan_error=False):
     proses = subprocess.Popen(perintah, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     for baris in proses.stdout: print(baris.decode('utf-8').strip())
     proses.wait()
-    
+
     if proses.returncode != 0:
         if not abaikan_error:
             kirim_telegram(f"❌ <b>GAGAL!</b>\n\n<b>Tahap:</b> {pesan_gagal}\n<b>Perintah:</b> <code>{perintah}</code>")
@@ -94,18 +93,18 @@ def tahap_setup():
     kirim_telegram("🛠️ <b>Status:</b> Menyiapkan environment dan kredensial Git...")
     jalankan_perintah("git config --global user.name 'Bot Cirrus CI'", "Git Name")
     jalankan_perintah("git config --global user.email 'bot@cirrus.ci'", "Git Email")
-    
+
     if GH_USERNAME and GH_TOKEN:
         print("[INFO] Mengatur kredensial Git Privat...")
         perintah_kredensial = f'git config --global url."https://{GH_USERNAME}:{GH_TOKEN}@github.com/".insteadOf "https://github.com/"'
         subprocess.run(perintah_kredensial, shell=True)
-        
+
     jalankan_perintah(f"repo init -u {LINK_MANIFEST} -b {BRANCH_ROM} --depth=1", "Repo Init")
 
 def tahap_sync():
     kirim_telegram("🔄 <b>Status:</b> Sinkronisasi source utama...")
     jalankan_perintah("repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j$(nproc --all)", "Repo Sync")
-    
+
     kirim_telegram("📦 <b>Status:</b> Menarik file Git LFS dari repo utama...")
     jalankan_perintah("repo forall -c 'git lfs install --local && git lfs pull && git lfs checkout'", "Repo Forall Git LFS")
 
@@ -119,7 +118,7 @@ def tahap_build():
     gunakan_ccache = siapkan_rclone()
     if gunakan_ccache:
         kirim_telegram("🔄 <b>Status:</b> Mengunduh ccache dari Google Drive...")
-        jalankan_perintah("rclone copy queen:reload/ccache.tar.gz /tmp/ && tar -xzf /tmp/ccache.tar.gz -C /tmp", "Download Ccache", abaikan_error=True)
+        jalankan_perintah("rclone copy queen:qassa/ccache.tar.gz /tmp/ && tar -xzf /tmp/ccache.tar.gz -C /tmp", "Download Ccache", abaikan_error=True)
 
     kirim_telegram("⏳ <b>Status:</b> Sedang memulai kompilasi...")
     perintah_build = f"""
@@ -127,7 +126,7 @@ def tahap_build():
     export CCACHE_DIR=/tmp/ccache
     export CCACHE_EXEC=$(which ccache)
     ccache -M 50G
-    timeout 95m bash -c 'source build/envsetup.sh && breakfast {CODENAME_DEVICE} userdebug && brunch {CODENAME_DEVICE}'
+    timeout 95m bash -c 'source build/envsetup.sh && lunch qassa_{CODENAME_DEVICE}-userdebug && mka qassa'
     """
     sukses_build = jalankan_perintah(perintah_build, "Kompilasi ROM", abaikan_error=True)
 
@@ -136,7 +135,7 @@ def tahap_build():
 
     if gunakan_ccache:
         kirim_telegram("☁️ <b>Status:</b> Menyimpan ccache ke Google Drive...")
-        jalankan_perintah("tar -czf /tmp/ccache.tar.gz -C /tmp ccache && rclone copy /tmp/ccache.tar.gz queen:reload/", "Upload Ccache")
+        jalankan_perintah("tar -czf /tmp/ccache.tar.gz -C /tmp ccache && rclone copy /tmp/ccache.tar.gz queen:qassa/", "Upload Ccache")
 
     if not sukses_build:
         kirim_telegram("ℹ️ <b>Info:</b> Ccache telah diamankan. Skrip dihentikan karena build error.")
@@ -145,13 +144,13 @@ def tahap_build():
 def tahap_upload():
     kirim_telegram("🔍 <b>Status:</b> Build sukses! Mengunggah ROM ke Google Drive...")
     siapkan_rclone()
-    
-    daftar_file_zip = glob.glob(f"out/target/product/{CODENAME_DEVICE}/lineage-*.zip")
+
+    daftar_file_zip = glob.glob(f"out/target/product/{CODENAME_DEVICE}/qassa-*.zip")
     if daftar_file_zip:
         path_file = daftar_file_zip[0]
         nama_file = os.path.basename(path_file)
         tujuan_drive = "queen:ROM_Builds"
-        
+
         try:
             subprocess.check_call(f'rclone copy "{path_file}" "{tujuan_drive}/"', shell=True, executable='/bin/bash')
             hasil_link = subprocess.check_output(f'rclone link "{tujuan_drive}/{nama_file}"', shell=True, executable='/bin/bash')
