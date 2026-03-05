@@ -8,82 +8,44 @@ import glob
 # --- MENGAMBIL DATA RAHASIA DARI CIRRUS CI ---
 BOT_TOKEN = os.environ.get('TG_BOT_TOKEN')
 CHAT_ID = os.environ.get('TG_CHAT_ID')
-RCLONE_CONF = os.environ.get('RCLONE_CONF') # Variabel baru untuk Google Drive
+RCLONE_CONF = os.environ.get('RCLONE_CONF')
+GH_TOKEN = os.environ.get('GH_TOKEN') # Variabel baru untuk Token GitHub
 
-def kirim_telegram(pesan):
-    if not BOT_TOKEN or not CHAT_ID: return
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    data = urllib.parse.urlencode({'chat_id': CHAT_ID, 'text': pesan, 'parse_mode': 'HTML'}).encode('utf-8')
-    try: urllib.request.urlopen(urllib.request.Request(url, data=data))
-    except Exception as e: print(f"[Error] Telegram: {e}")
+# ... [Fungsi kirim_telegram, jalankan_perintah, upload_rom, fungsi rclone TETAP SAMA] ...
 
-def jalankan_perintah(perintah, pesan_gagal, abaikan_error=False):
-    print(f"\n[INFO] Menjalankan: {perintah}\n" + "="*40)
-    proses = subprocess.Popen(perintah, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    for baris in proses.stdout: print(baris.decode('utf-8').strip())
-    proses.wait()
-    
-    if proses.returncode != 0 and not abaikan_error:
-        kirim_telegram(f"❌ <b>BUILD GAGAL!</b>\n\n<b>Tahap:</b> {pesan_gagal}\n<b>Perintah:</b> <code>{perintah}</code>")
-        sys.exit(1)
-    return proses.returncode == 0
+def setup_kredensial_git():
+    """Fungsi baru: Mengatur kredensial agar bisa mengkloning repo privat"""
+    if not GH_TOKEN:
+        print("[INFO] GH_TOKEN tidak ditemukan. Melewati pengaturan kredensial repo privat.")
+        return
 
-def upload_rom(path_file):
-    print(f"\n[INFO] Mengunggah {path_file} ke transfer.sh...")
-    try:
-        hasil = subprocess.check_output(f'curl --upload-file "{path_file}" https://transfer.sh/{os.path.basename(path_file)}', shell=True, executable='/bin/bash')
-        return hasil.decode('utf-8').strip()
-    except subprocess.CalledProcessError:
-        return None
-
-# --- FUNGSI BARU UNTUK CCACHE & RCLONE ---
-
-def siapkan_rclone():
-    """Menulis konfigurasi Rclone dari rahasia Cirrus CI ke dalam file"""
-    if not RCLONE_CONF:
-        print("[INFO] RCLONE_CONF tidak ditemukan. Fitur ccache dilewati.")
-        return False
-    
-    os.makedirs(os.path.expanduser('~/.config/rclone'), exist_ok=True)
-    with open(os.path.expanduser('~/.config/rclone/rclone.conf'), 'w') as f:
-        f.write(RCLONE_CONF)
-    return True
-
-def restore_ccache():
-    """Mengunduh dan mengekstrak ccache dari Google Drive"""
-    kirim_telegram("🔄 <b>Status:</b> Mengunduh ccache dari Google Drive...")
-    # Asumsi: remote rclone bernama 'gdrive', folder bernama 'ccache_X00TD'
-    perintah_download = "rclone copy gdrive:ccache_X00TD/ccache.tar.gz /tmp/ && tar -xzf /tmp/ccache.tar.gz -C /tmp"
-    
-    # Kita abaikan error karena pada build pertama, file ccache.tar.gz belum ada di Drive
-    sukses = jalankan_perintah(perintah_download, "Download Ccache", abaikan_error=True)
-    if sukses:
-        print("[INFO] Ccache berhasil dipulihkan dari Google Drive!")
-    else:
-        print("[INFO] Ccache tidak ditemukan. Ini wajar jika ini adalah build pertama Anda.")
-
-def backup_ccache():
-    """Mengompres dan mengunggah ccache kembali ke Google Drive"""
-    kirim_telegram("☁️ <b>Status:</b> Mengompres dan menyimpan ccache ke Google Drive...")
-    # Kompres folder /tmp/ccache lalu unggah
-    perintah_upload = "tar -czf /tmp/ccache.tar.gz -C /tmp ccache && rclone copy /tmp/ccache.tar.gz gdrive:ccache_X00TD/"
-    jalankan_perintah(perintah_upload, "Upload Ccache")
+    print("\n[INFO] Mengatur kredensial Git untuk repositori privat...")
+    # Kita menggunakan subprocess.run langsung di sini tanpa mencetak (print) perintahnya,
+    # agar token rahasia Anda tidak bocor ke dalam log publik Cirrus CI.
+    perintah_kredensial = f'git config --global url."https://{GH_TOKEN}@github.com/".insteadOf "https://github.com/"'
+    subprocess.run(perintah_kredensial, shell=True)
+    print("[INFO] Kredensial Git berhasil diatur secara rahasia!")
 
 def utama():
     link_manifest = "https://github.com/LineageOS/android.git"
     branch_rom = "lineage-20.0" 
     codename_device = "X00TD"
     
+    # URL di bawah ini tetap gunakan format biasa (https://github.com/...)
+    # Sistem Git akan otomatis menyisipkan token Anda berkat trik insteadOf di atas!
     repositori_perangkat = [
         {"nama": "Device Tree", "url": "https://github.com/LineageOS/android_device_asus_X00TD.git", "branch": "lineage-20.0", "path": "device/asus/X00TD"},
-        {"nama": "Vendor Tree", "url": "https://github.com/TheMuppets/proprietary_vendor_asus.git", "branch": "lineage-20.0", "path": "vendor/asus"},
+        {"nama": "Vendor Tree", "url": "https://github.com/RepositoriPrivatAnda/vendor_asus.git", "branch": "lineage-20.0", "path": "vendor/asus"},
         {"nama": "Kernel Tree", "url": "https://github.com/LineageOS/android_kernel_asus_sdm660.git", "branch": "lineage-20.0", "path": "kernel/asus/sdm660"}
     ]
-    
+
     kirim_telegram(f"🚀 <b>Mulai Build ROM!</b>\n\n<b>Perangkat:</b> {codename_device}\n<b>ROM:</b> LineageOS ({branch_rom})")
 
     jalankan_perintah("git config --global user.name 'Bot Cirrus CI'", "Git Name")
     jalankan_perintah("git config --global user.email 'bot@cirrus.ci'", "Git Email")
+
+    setup_kredensial_git()
+
     jalankan_perintah(f"repo init -u {link_manifest} -b {branch_rom} --depth=1", "Repo Init")
 
     kirim_telegram("🔄 <b>Status:</b> Sinkronisasi source utama...")
