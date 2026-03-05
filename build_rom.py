@@ -4,6 +4,7 @@ import sys
 import urllib.request
 import urllib.parse
 import glob
+import json
 
 # --- MENGAMBIL DATA RAHASIA DARI CIRRUS CI ---
 BOT_TOKEN = os.environ.get('TG_BOT_TOKEN')
@@ -12,12 +13,41 @@ RCLONE_CONF = os.environ.get('RCLONE_CONF')
 GH_TOKEN = os.environ.get('GH_TOKEN')
 GH_USERNAME = os.environ.get('GH_USERNAME')
 
+ID_PESAN_STATUS = None
+
 def kirim_telegram(pesan):
-    if not BOT_TOKEN or not CHAT_ID: return
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    data = urllib.parse.urlencode({'chat_id': CHAT_ID, 'text': pesan, 'parse_mode': 'HTML'}).encode('utf-8')
-    try: urllib.request.urlopen(urllib.request.Request(url, data=data))
-    except Exception as e: print(f"[Error] Telegram: {e}")
+    global ID_PESAN_STATUS
+    
+    if not BOT_TOKEN or not CHAT_ID: 
+        return
+
+    if ID_PESAN_STATUS is None:
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        data = urllib.parse.urlencode({'chat_id': CHAT_ID, 'text': pesan, 'parse_mode': 'HTML'}).encode('utf-8')
+        try: 
+            req = urllib.request.Request(url, data=data)
+            with urllib.request.urlopen(req) as respons:
+                # Membaca balasan dari Telegram untuk mendapatkan ID Pesan
+                hasil = json.loads(respons.read().decode('utf-8'))
+                if hasil.get('ok'):
+                    ID_PESAN_STATUS = hasil['result']['message_id']
+        except Exception as e: 
+            print(f"[Error] Gagal mengirim pesan awal Telegram: {e}")
+            
+    # Jika ID_PESAN_STATUS sudah ada, kita EDIT pesan tersebut.
+    else:
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/editMessageText"
+        data = urllib.parse.urlencode({
+            'chat_id': CHAT_ID, 
+            'message_id': ID_PESAN_STATUS, # Masukkan ID pesan yang mau diedit
+            'text': pesan, 
+            'parse_mode': 'HTML'
+        }).encode('utf-8')
+        try: 
+            req = urllib.request.Request(url, data=data)
+            urllib.request.urlopen(req)
+        except Exception as e: 
+            print(f"[Error] Gagal mengedit pesan Telegram: {e}")
 
 def jalankan_perintah(perintah, pesan_gagal, abaikan_error=False): # set to true if first build for ccache.
     """Menjalankan perintah dan bisa memilih untuk lanjut meskipun error"""
