@@ -6,8 +6,11 @@ task:
     memory: 32G
   
   env:
-    TG_BOT_TOKEN: ENCRYPTED[!!]
-    TG_CHAT_ID: ENCRYPTED[!!]
+    TG_BOT_TOKEN: ENCRYPTED[4831f48cbdfe4eb5e1638bab74422e6a4ae07d1daf9943f5e29d43687bbe9ee06751d71edb1ae64b6cd9f981181485db]
+    TG_CHAT_ID: ENCRYPTED[e0f6a035b67c0c702245d7f49ae3a29c7cd548c1ec498ea7e323928954e7bb7e915a1d314e7ae812005fa77718c1827d]
+    RCLONE_CONF: ENCRYPTED[ec7734e8b495e026a95409b8984a158aaa5c9db4dc96b5eca607b136703832e9a5de80b7649074444bd2ec12ebd095ff]
+    CREDENTIALS: ENCRYPTED[4f2ed4bc06ea9b13426d3c2b0a32d822540042f7e18eab0ab30efe538432dd1b2d06b90466747f0fd2d80bdd34375f3b] # For private repo(s)
 
   build_script:
+    - sudo apt-get update && sudo apt-get install -y rclone
     - python3 build_rom.py
