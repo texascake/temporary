@@ -61,12 +61,12 @@ def siapkan_rclone():
 
 def restore_ccache():
     kirim_telegram("🔄 <b>Status:</b> Mengunduh ccache dari Google Drive...")
-    perintah_download = "rclone copy GDrive:lineage/ccache.tar.gz /tmp/ && tar -xzf /tmp/ccache.tar.gz -C /tmp"
+    perintah_download = "rclone copy queen:reload/ccache.tar.gz /tmp/ && tar -xzf /tmp/ccache.tar.gz -C /tmp"
     jalankan_perintah(perintah_download, "Download Ccache", abaikan_error=True)
 
 def backup_ccache():
     kirim_telegram("☁️ <b>Status:</b> Mengompres dan menyimpan ccache ke Google Drive...")
-    perintah_upload = "tar -czf /tmp/ccache.tar.gz -C /tmp ccache && rclone copy /tmp/ccache.tar.gz GDrive:lineage/"
+    perintah_upload = "tar -czf /tmp/ccache.tar.gz -C /tmp ccache && rclone copy /tmp/ccache.tar.gz queen:reload/"
     jalankan_perintah(perintah_upload, "Upload Ccache")
 
 def utama():
