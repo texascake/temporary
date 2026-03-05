@@ -46,7 +46,7 @@ def upload_rom(path_file):
         return None
 
 def setup_kredensial_git():
-    if not GH_USERNAME GH_TOKEN: return
+    if not GH_USERNAME or not GH_TOKEN: return
     print("\n[INFO] Mengatur kredensial Git untuk repositori privat...")
     perintah_kredensial = f'git config --global url."https://{GH_USERNAME}:{GH_TOKEN}@github.com/".insteadOf "https://github.com/"'
     subprocess.run(perintah_kredensial, shell=True)
