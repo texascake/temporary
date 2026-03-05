@@ -9,7 +9,7 @@ task:
     TG_BOT_TOKEN: ENCRYPTED[!4831f48cbdfe4eb5e1638bab74422e6a4ae07d1daf9943f5e29d43687bbe9ee06751d71edb1ae64b6cd9f981181485db!]
     TG_CHAT_ID: ENCRYPTED[!e0f6a035b67c0c702245d7f49ae3a29c7cd548c1ec498ea7e323928954e7bb7e915a1d314e7ae812005fa77718c1827d!]
     RCLONE_CONF: ENCRYPTED[!ec7734e8b495e026a95409b8984a158aaa5c9db4dc96b5eca607b136703832e9a5de80b7649074444bd2ec12ebd095ff!]
-    GH_TOKEN: ENCRYPTED[!58f6a7bba39b971a3cbc817bf63384b5a18977499ffa12487eda21b77e0e552d640163be2a21162cd7267f58836690e4!] # For private repo(s)
+    GH_TOKEN: ENCRYPTED[58f6a7bba39b971a3cbc817bf63384b5a18977499ffa12487eda21b77e0e552d640163be2a21162cd7267f58836690e4] # For private repo(s)
 
   build_script:
     - sudo apt-get update && sudo apt-get install -y rclone rsync git-lfs && git lfs install
