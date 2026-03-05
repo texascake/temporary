@@ -88,7 +88,8 @@ def utama():
     jalankan_perintah(f"repo init -u {link_manifest} -b {branch_rom} --depth=1 --git-lfs", "Repo Init")
 
     kirim_telegram("🔄 <b>Status:</b> Sinkronisasi source utama...")
-    jalankan_perintah("repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j8", "Repo Sync")
+    jalankan_perintah("repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j$(nproc --all)", "Repo Sync")
+    jalankan_perintah("repo forall -c 'git lfs install && git lfs pull && git lfs checkout'")
 
     kirim_telegram("📥 <b>Status:</b> Mengkloning Device, Vendor, dan Kernel Tree...")
     for repo in repositori_perangkat:
