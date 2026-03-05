@@ -145,7 +145,7 @@ def tahap_upload():
     kirim_telegram("🔍 <b>Status:</b> Build sukses! Mengunggah ROM ke Google Drive...")
     siapkan_rclone()
 
-    daftar_file_zip = glob.glob(f"out/target/product/{CODENAME_DEVICE}/qassa-*.zip")
+    daftar_file_zip = glob.glob(f"out/target/product/{CODENAME_DEVICE}/qassa_*.zip")
     if daftar_file_zip:
         path_file = daftar_file_zip[0]
         nama_file = os.path.basename(path_file)
