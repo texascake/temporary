@@ -2,17 +2,37 @@ env:
   TG_BOT_TOKEN: "ENCRYPTED[b4f4aad3d9dac8b1392dce4659bb7866b14dde997746bab87794b4e2fc68480b1199a6facbcafbcda777d72da422c35b]"
   TG_CHAT_ID: "ENCRYPTED[8dea0ba6fcfe82ff567f3aa5c1c82dcb7256037405fc902879962553ab55d15f08d7c97007c0d2c10327dda88378a058]"
   RCLONE_CONF: "ENCRYPTED[11c0b00d0a6b5fcc9fb8f259cadc1193fcf7b745424a87cca8e77d834bdf939126e8a60e14be488753848503576ae15e]"
-  GH_TOKEN: "ENCRYPTED[58f6a7bba39b971a3cbc817bf63384b5a18977499ffa12487eda21b77e0e552d640163be2a21162cd7267f58836690e4]" # For private repo(s)
-  GH_USERNAME: "ENCRYPTED[4c2b0c1f0745d2ca58e27b76021355cdefd673b7c3e16e4c6bda58ec22f8c0258e180c0513e0b2f629d9e9824c6baf0b]" # For private repo(s)
+  GH_TOKEN: "ENCRYPTED[58f6a7bba39b971a3cbc817bf63384b5a18977499ffa12487eda21b77e0e552d640163be2a21162cd7267f58836690e4]"
+  GH_USERNAME: "ENCRYPTED[4c2b0c1f0745d2ca58e27b76021355cdefd673b7c3e16e4c6bda58ec22f8c0258e180c0513e0b2f629d9e9824c6baf0b]"
 
 task:
-  name: Build Android ROM
+  name: Build LineageOS ROM
   timeout_in: 120m
   container:
     image: inok2341/anu:latest
     cpu: 8
     memory: 32G
-  
+
+  # 1. Menginstal alat yang dibutuhkan
+  install_script:
+    - sudo apt-get update && sudo apt-get install -y rclone rsync git-lfs && git lfs install python3
+
+  # 2. Menyiapkan kredensial dan inisialisasi Repo
+  setup_script:
+    - python3 build_rom.py setup
+
+  # 3. Mengunduh miliaran baris kode sumber utama
+  sync_script:
+    - python3 build_rom.py sync
+
+  # 4. Mengkloning spesifikasi perangkat X00TD
+  clone_script:
+    - python3 build_rom.py clone
+
+  # 5. Memulai proses kompilasi inti
   build_script:
-    - sudo apt-get update && sudo apt-get install -y rclone rsync git-lfs && git lfs install
-    - python3 build_rom.py
+    - python3 build_rom.py build
+
+  # 6. Mengunggah ROM hasil kompilasi ke Google Drive
+  upload_script:
+    - python3 build_rom.py upload
