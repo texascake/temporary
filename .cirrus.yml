@@ -1,0 +1,13 @@
+task:
+  name: Build Android ROM
+  container:
+    image: inok2341/anu:latest
+    cpu: 8
+    memory: 32G
+  
+  env:
+    TG_BOT_TOKEN: ENCRYPTED[!!]
+    TG_CHAT_ID: ENCRYPTED[!!]
+
+  build_script:
+    - python3 build_rom.py
