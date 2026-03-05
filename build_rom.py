@@ -18,7 +18,7 @@ def kirim_telegram(pesan):
     try: urllib.request.urlopen(urllib.request.Request(url, data=data))
     except Exception as e: print(f"[Error] Telegram: {e}")
 
-def jalankan_perintah(perintah, pesan_gagal, abaikan_error=False):
+def jalankan_perintah(perintah, pesan_gagal, abaikan_error=False): # set to true if first build for ccache.
     """Menjalankan perintah dan bisa memilih untuk lanjut meskipun error"""
     print(f"\n[INFO] Menjalankan: {perintah}\n" + "="*40)
     proses = subprocess.Popen(perintah, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -106,7 +106,7 @@ def utama():
     export CCACHE_DIR=/tmp/ccache
     export CCACHE_EXEC=$(which ccache)
     ccache -M 50G
-    source build/envsetup.sh && brunch X00TD
+    source build/envsetup.sh && breakfast X00TD userdebug && brunch X00TD
     """
     
     # --- LOGIKA BARU UNTUK BUILD & CCACHE ---
