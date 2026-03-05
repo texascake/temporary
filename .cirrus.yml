@@ -20,21 +20,21 @@ task:
     - ls -la
 
   # 2. Menyiapkan kredensial dan inisialisasi Repo
-  tahap_setup:
+  langkah_setup_script:
     - python3 build_rom.py setup
 
   # 3. Mengunduh miliaran baris kode sumber utama
-  tahap_sync:
+  langkah_sync_script:
     - python3 build_rom.py sync
 
   # 4. Mengkloning spesifikasi perangkat X00TD
-  tahap_clone:
+  langkah_unduh_tree_script:
     - python3 build_rom.py clone
 
   # 5. Memulai proses kompilasi inti
-  tahap_build:
+  langkah_kompilasi_script:
     - python3 build_rom.py build
 
   # 6. Mengunggah ROM hasil kompilasi ke Google Drive
-  tahap_upload:
+  langkah_upload_script:
     - python3 build_rom.py upload
