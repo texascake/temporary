@@ -9,32 +9,22 @@ task:
   name: Build LineageOS ROM
   timeout_in: 120m
   container:
-    image: inok2341/anu:latest
+    image: texascake/tiramisu:latest
     cpu: 8
     memory: 32G
+    greedy: true
 
-  # 1. Menginstal alat yang dibutuhkan
-  install_script:
-    - sudo apt-get update && sudo apt-get install -y rclone git-lfs python3
-    - pwd
-    - ls -la
-
-  # 2. Menyiapkan kredensial dan inisialisasi Repo
   langkah_setup_script:
     - python3 build_rom.py setup
 
-  # 3. Mengunduh miliaran baris kode sumber utama
   langkah_sync_script:
     - python3 build_rom.py sync
 
-  # 4. Mengkloning spesifikasi perangkat X00TD
   langkah_unduh_tree_script:
     - python3 build_rom.py clone
 
-  # 5. Memulai proses kompilasi inti
   langkah_kompilasi_script:
     - python3 build_rom.py build
 
-  # 6. Mengunggah ROM hasil kompilasi ke Google Drive
   langkah_upload_script:
     - python3 build_rom.py upload
