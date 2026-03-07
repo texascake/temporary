@@ -43,7 +43,7 @@ def kirim_telegram(pesan):
     else:
         teks_link = "🔗 <i>Link Log tidak tersedia (Berjalan Lokal)</i>"
 
-    teks_dasar = f"🚀 <b>Build ROM for {CODENAME_DEVICE}</b>\n<b>ROM:</b> LineageOS ({BRANCH_ROM})\n{teks_link}\n\n{pesan}"
+    teks_dasar = f"🚀 <b>Build ROM for {CODENAME_DEVICE}</b>\n<b>📡 ROM:</b> LineageOS ({BRANCH_ROM})\n{teks_link}\n\n{pesan}"
 
     if id_pesan is None:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
