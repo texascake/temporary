@@ -7,7 +7,7 @@ env:
 
 task:
   name: Build LineageOS ROM
-  timeout_in: 120m
+  timeout_in: 480m
   container:
     image: texascake/tiramisu:latest
     cpu: 8
