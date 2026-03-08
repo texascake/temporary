@@ -128,7 +128,7 @@ def tahap_build():
     ccache -M 50G
     export _JAVA_OPTIONS="-Xmx8g"
     export NINJA_HIGHMEM_NUM_JOBS=1
-    timeout 95m bash -c '. build/envsetup.sh && lunch lineage_{CODENAME_DEVICE}-userdebug && mka bacon -j8'
+    bash -c '. build/envsetup.sh && lunch lineage_{CODENAME_DEVICE}-userdebug && mka bacon -j8'
     """
     sukses_build = jalankan_perintah(perintah_build, "Kompilasi ROM", abaikan_error=True)
 
