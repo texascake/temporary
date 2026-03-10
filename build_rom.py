@@ -126,7 +126,6 @@ def tahap_build():
     export CCACHE_DIR=/tmp/ccache
     export CCACHE_EXEC=$(which ccache)
     ccache -M 50G
-    export _JAVA_OPTIONS="-Xmx8g"
     export NINJA_HIGHMEM_NUM_JOBS=1
     timeout 95m bash -c '. build/envsetup.sh && lunch lineage_{CODENAME_DEVICE}-userdebug && mka bacon -j$(nproc --all)'
     """
