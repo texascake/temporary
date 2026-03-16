@@ -99,7 +99,7 @@ def tahap_setup():
         perintah_kredensial = f'git config --global url."https://{GH_USERNAME}:{GH_TOKEN}@github.com/".insteadOf "https://github.com/"'
         subprocess.run(perintah_kredensial, shell=True)
 
-    jalankan_perintah(f"repo init -u {LINK_MANIFEST} -b {BRANCH_ROM} --depth=1", "Repo Init")
+    jalankan_perintah(f"repo init --depth=1 --no-repo-verify -u {LINK_MANIFEST} -b {BRANCH_ROM} -g default,-mips,-darwin,-notdefault", "Repo Init")
 
 def tahap_sync():
     kirim_telegram("🔄 <b>Status:</b> Sinkronisasi source utama...")
@@ -126,7 +126,7 @@ def tahap_build():
     export CCACHE_DIR=/tmp/ccache
     export CCACHE_EXEC=$(which ccache)
     ccache -M 50G
-    timeout 100m bash -c '. build/envsetup.sh && lunch lineage_{CODENAME_DEVICE}-userdebug && mka bacon -j$(nproc --all)'
+    timeout 100m bash -c '. build/envsetup.sh && lunch lineage_{CODENAME_DEVICE}-userdebug && mka bacon'
     """
     sukses_build = jalankan_perintah(perintah_build, "Kompilasi ROM", abaikan_error=True)
 
