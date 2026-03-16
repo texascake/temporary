@@ -12,7 +12,7 @@ task:
     image: texascake/tiramisu:latest
     cpu: 8
     memory: 32G
-    greedy: true
+    #greedy: true
 
   langkah_setup_script:
     - python3 build_rom.py setup
