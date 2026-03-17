@@ -1,4 +1,6 @@
 env:
+  CIRRUS_CLONE_DEPTH: 1
+  BUILD_HOSTNAME: "cirrus-ci.org"
   TG_BOT_TOKEN: "ENCRYPTED[b4f4aad3d9dac8b1392dce4659bb7866b14dde997746bab87794b4e2fc68480b1199a6facbcafbcda777d72da422c35b]"
   TG_CHAT_ID: "ENCRYPTED[c60258d38767b8a0eff5c7847dae9bbc6988da510e5175bd426a6507591dee5a3dedc936a7426384e683f768dcf63ff7]"
   RCLONE_CONF: "ENCRYPTED[11c0b00d0a6b5fcc9fb8f259cadc1193fcf7b745424a87cca8e77d834bdf939126e8a60e14be488753848503576ae15e]"
@@ -7,7 +9,7 @@ env:
 
 task:
   name: Build LineageOS ROM
-  timeout_in: 120m
+  timeout_in: 2h
   container:
     image: texascake/tiramisu:latest
     cpu: 8
