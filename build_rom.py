@@ -19,7 +19,7 @@ LINK_MANIFEST = "https://github.com/ArrowOS-T/android_manifest"
 ANDROID_ROM = "ArrowOS"
 BRANCH_ROM = "arrow-13.1_ext"
 CODENAME_DEVICE = "X00T"
-GAMBAR_BANNER = "https://github.com/texascake/texascake/raw/refs/heads/main/los.png"
+GAMBAR_BANNER = "https://raw.githubusercontent.com/texascake/texascake/refs/heads/main/arrowos-ext.png"
 
 REPOSITORI_PERANGKAT = [
     {"nama": "Device Tree", "url": "https://github.com/texascake/android_device_asus_X00TD.git", "branch": "t", "path": "device/asus/X00T"},
