@@ -15,8 +15,9 @@ CIRRUS_TASK_ID = os.environ.get('CIRRUS_TASK_ID')
 
 FILE_ID_PESAN = "/tmp/tg_msg.txt"
 
-LINK_MANIFEST = "https://github.com/LineageOS-T/android"
-BRANCH_ROM = "lineage-20.0"
+LINK_MANIFEST = "https://github.com/ArrowOS-T/android_manifest"
+ANDROID_ROM = "ArrowOS"
+BRANCH_ROM = "arrow-13.1_ext"
 CODENAME_DEVICE = "X00T"
 GAMBAR_BANNER = "https://github.com/texascake/texascake/raw/refs/heads/main/los.png"
 
@@ -43,7 +44,7 @@ def kirim_telegram(pesan):
     else:
         teks_link = "🔗 <i>Link Log tidak tersedia (Berjalan Lokal)</i>"
 
-    teks_dasar = f"🚀 <b>Build ROM for {CODENAME_DEVICE}</b>\n<b>📡 ROM:</b> LineageOS ({BRANCH_ROM})\n{teks_link}\n\n{pesan}"
+    teks_dasar = f"🚀 <b>Build ROM for {CODENAME_DEVICE}</b>\n<b>📡 ROM:</b> {ANDROID_ROM} ({BRANCH_ROM})\n{teks_link}\n\n{pesan}"
 
     if id_pesan is None:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
@@ -118,7 +119,7 @@ def tahap_build():
     gunakan_ccache = siapkan_rclone()
     if gunakan_ccache:
         kirim_telegram("🔄 <b>Status:</b> Mengunduh ccache dari Google Drive...")
-        jalankan_perintah("rclone copy queen:reload/ccache.tar.gz /tmp/ && tar -xzf /tmp/ccache.tar.gz -C /tmp", "Download Ccache", abaikan_error=True)
+        jalankan_perintah("rclone copy queen:arrow/ccache.tar.gz /tmp/ && tar -xzf /tmp/ccache.tar.gz -C /tmp", "Download Ccache", abaikan_error=True)
 
     kirim_telegram("⏳ <b>Status:</b> Sedang memulai kompilasi...")
     perintah_build = f"""
@@ -126,7 +127,7 @@ def tahap_build():
     export CCACHE_DIR=/tmp/ccache
     export CCACHE_EXEC=$(which ccache)
     ccache -M 50G
-    timeout 95m bash -c '. build/envsetup.sh && lunch lineage_{CODENAME_DEVICE}-userdebug && mka bacon'
+    timeout 95m bash -c '. build/envsetup.sh && lunch arrow_{CODENAME_DEVICE}-userdebug && m bacon'
     """
     sukses_build = jalankan_perintah(perintah_build, "Kompilasi ROM", abaikan_error=True)
 
@@ -135,7 +136,7 @@ def tahap_build():
 
     if gunakan_ccache:
         kirim_telegram("☁️ <b>Status:</b> Menyimpan ccache ke Google Drive...")
-        jalankan_perintah("tar -czf /tmp/ccache.tar.gz -C /tmp ccache && rclone copy /tmp/ccache.tar.gz queen:reload/", "Upload Ccache")
+        jalankan_perintah("tar -czf /tmp/ccache.tar.gz -C /tmp ccache && rclone copy /tmp/ccache.tar.gz queen:arrow/", "Upload Ccache")
 
     if not sukses_build:
         kirim_telegram("ℹ️ <b>Info:</b> Ccache telah diamankan. Skrip dihentikan karena build error.")
