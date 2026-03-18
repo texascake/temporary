@@ -127,7 +127,7 @@ def tahap_build():
     export CCACHE_DIR=/tmp/ccache
     export CCACHE_EXEC=$(which ccache)
     ccache -M 50G
-    timeout 95m bash -c '. build/envsetup.sh && lunch arrow_{CODENAME_DEVICE}-userdebug && m bacon'
+    timeout 95m bash -c '. build/envsetup.sh && lunch arrow_{CODENAME_DEVICE}-userdebug && export TZ=Asia/Jakarta && m bacon'
     """
     sukses_build = jalankan_perintah(perintah_build, "Kompilasi ROM", abaikan_error=True)
 
