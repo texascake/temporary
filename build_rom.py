@@ -15,7 +15,7 @@ CIRRUS_TASK_ID = os.environ.get('CIRRUS_TASK_ID')
 
 FILE_ID_PESAN = "/tmp/tg_msg.txt"
 
-LINK_MANIFEST = "https://github.com/lineageos-q-mean/android.git"
+LINK_MANIFEST = "https://github.com/LineageOS-Revived/android.git"
 BRANCH_ROM = "lineage-17.1"
 CODENAME_DEVICE = "X00TD"
 GAMBAR_BANNER = "https://github.com/texascake/texascake/raw/refs/heads/main/los.png"
