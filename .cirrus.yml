@@ -14,28 +14,28 @@ task:
     memory: 32G
     greedy: true
 
-  # 1. Menginstal alat yang dibutuhkan
+  # 1. Install required tools
   install_script:
     - sudo apt-get update && sudo apt-get install -y rclone git-lfs python3
     - pwd
     - ls -la
 
-  # 2. Menyiapkan kredensial dan inisialisasi Repo
-  langkah_setup_script:
+  # 2. Setup environment credentials and initialize Repo
+  setup_stage_script:
     - python3 build_rom.py setup
 
-  # 3. Mengunduh miliaran baris kode sumber utama
-  langkah_sync_script:
+  # 3. Sync the main source code
+  sync_stage_script:
     - python3 build_rom.py sync
 
-  # 4. Mengkloning spesifikasi perangkat X00TD
-  langkah_unduh_tree_script:
+  # 4. Clone X00TD device specific trees
+  clone_stage_script:
     - python3 build_rom.py clone
 
-  # 5. Memulai proses kompilasi inti
-  langkah_kompilasi_script:
+  # 5. Start the core compilation process
+  build_stage_script:
     - python3 build_rom.py build
 
-  # 6. Mengunggah ROM hasil kompilasi ke Google Drive
-  langkah_upload_script:
+  # 6. Check MD5 and upload compiled ROM to Google Drive
+  upload_stage_script:
     - python3 build_rom.py upload
