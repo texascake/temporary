@@ -93,18 +93,19 @@ def tahap_setup():
     kirim_telegram("🛠️ <b>Status:</b> Menyiapkan environment dan kredensial Git...")
     jalankan_perintah("git config --global user.name 'Bot Cirrus CI'", "Git Name")
     jalankan_perintah("git config --global user.email 'bot@cirrus.ci'", "Git Email")
-    
+
     if GH_USERNAME and GH_TOKEN:
         print("[INFO] Mengatur kredensial Git Privat...")
         perintah_kredensial = f'git config --global url."https://{GH_USERNAME}:{GH_TOKEN}@github.com/".insteadOf "https://github.com/"'
         subprocess.run(perintah_kredensial, shell=True)
-        
+
     jalankan_perintah(f"repo init -u {LINK_MANIFEST} -b {BRANCH_ROM} --depth=1", "Repo Init")
 
 def tahap_sync():
     kirim_telegram("🔄 <b>Status:</b> Sinkronisasi source utama...")
+    jalankan_perintah("sed -i 's|ssh://git@github.com|https://github.com|g' .repo/manifests/snippets/projects.xml", "Host Verification")
     jalankan_perintah("repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j$(nproc --all)", "Repo Sync")
-    
+
     kirim_telegram("📦 <b>Status:</b> Menarik file Git LFS dari repo utama...")
     jalankan_perintah("repo forall -c 'git lfs install --local && git lfs pull && git lfs checkout'", "Repo Forall Git LFS")
 
