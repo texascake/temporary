@@ -143,20 +143,42 @@ def tahap_build():
         sys.exit(1)
 
 def tahap_upload():
-    kirim_telegram("🔍 <b>Status:</b> Build sukses! Mengunggah ROM ke Google Drive...")
+    kirim_telegram("🔍 <b>Status:</b> Build sukses! Mengecek MD5 dan mengunggah ROM ke Google Drive...")
+    
     siapkan_rclone()
     
     daftar_file_zip = glob.glob(f"out/target/product/{CODENAME_DEVICE}/Nusantara-*.zip")
+    
     if daftar_file_zip:
         path_file = daftar_file_zip[0]
         nama_file = os.path.basename(path_file)
         tujuan_drive = "queen:ROM_Builds"
+
+        try:
+            print(f"\n[INFO] Menghitung MD5 untuk {nama_file}...")
+            perintah_md5 = f"md5sum '{path_file}' | awk '{{print $1}}'"
+            hasil_md5_raw = subprocess.check_output(perintah_md5, shell=True, executable='/bin/bash')
+
+            md5_string = hasil_md5_raw.decode('utf-8').strip()
+            print(f"[INFO] MD5 berhasil didapatkan: {md5_string}")
+        except Exception as e:
+            md5_string = "Gagal menghitung MD5"
+            print(f"[Error] Terjadi kesalahan saat menghitung MD5: {e}")
         
         try:
             subprocess.check_call(f'rclone copy "{path_file}" "{tujuan_drive}/"', shell=True, executable='/bin/bash')
+
             hasil_link = subprocess.check_output(f'rclone link "{tujuan_drive}/{nama_file}"', shell=True, executable='/bin/bash')
             link_rom = hasil_link.decode('utf-8').strip()
-            kirim_telegram(f"✅ <b>BUILD & UPLOAD BERHASIL!</b>\n\n<b>Link ROM:</b> {link_rom}")
+
+            pesan_sukses = (
+                f"✅ <b>BUILD & UPLOAD BERHASIL!</b>\n\n"
+                f"📁 <b>File:</b> <code>{nama_file}</code>\n"
+                f"🔤 <b>MD5:</b> <code>{md5_string}</code>\n"
+                f"🔗 <b>Link ROM:</b> <a href='{link_rom}'>Download di sini</a>"
+            )
+            kirim_telegram(pesan_sukses)
+            
         except subprocess.CalledProcessError as e:
             kirim_telegram(f"⚠️ <b>Peringatan:</b> Build sukses, tapi upload ke Drive gagal: {e}")
     else:
