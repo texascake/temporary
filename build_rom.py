@@ -18,7 +18,7 @@ FILE_ID_PESAN = "/tmp/tg_msg.txt"
 LINK_MANIFEST = "https://github.com/Nusantara-SiXtY-N9/android_manifest_nusa"
 BRANCH_ROM = "10"
 CODENAME_DEVICE = "X00T"
-GAMBAR_BANNER = "https://github.com/texascake/texascake/raw/refs/heads/main/los.png"
+GAMBAR_BANNER = "https://github.com/texascake/texascake/raw/refs/heads/main/nadsixty.png"
 
 REPOSITORI_PERANGKAT = [
     {"nama": "Device Tree", "url": "https://github.com/texascake/android_device_asus_X00TD", "branch": "nad-sixty", "path": "device/asus/X00T"},
