@@ -12,7 +12,7 @@ task:
     image: inok2341/anu:latest
     cpu: 8
     memory: 32G
-    greedy: true
+    #greedy: true
 
   # 1. Install required tools
   install_script:
