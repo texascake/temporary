@@ -5,6 +5,8 @@ import urllib.request
 import urllib.parse
 import glob
 import json
+import time
+import re
 
 BOT_TOKEN = os.environ.get('TG_BOT_TOKEN')
 CHAT_ID = os.environ.get('TG_CHAT_ID')
@@ -77,19 +79,51 @@ def send_telegram(message):
         except Exception as e:
             print(f"[Error] Edit Telegram: {e}", flush=True)
 
-def run_command(command, fail_message, ignore_error=False):
+def run_command(command, fail_message, ignore_error=False, extract_stats=False, live_update=False):
     print(f"\n[INFO] Running: {command}\n" + "="*40)
     process = subprocess.Popen(command, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    
+    last_stats = "Unknown"
+    ninja_regex = re.compile(r'\[\s*\d+% (\d+/\d+)\]')
+    
+    start_time = time.time()
+    last_update_time = start_time
+    interval_update = 300
+    
     for line in process.stdout:
-        print(line.decode('utf-8').strip())
+        decoded_line = line.decode('utf-8', errors='replace').strip()
+        print(decoded_line)
+        
+        if extract_stats or live_update:
+            match = ninja_regex.search(decoded_line)
+            if match:
+                last_stats = match.group(1)
+        
+        if live_update:
+            current_time = time.time()
+            if current_time - last_update_time >= interval_update:
+                elapsed_secs = int(current_time - start_time)
+                m, s = divmod(elapsed_secs, 60)
+                h, m = divmod(m, 60)
+                
+                time_str = f"{h} hours, {m} mins" if h > 0 else f"{m} mins, {s} secs"
+                
+                send_telegram(
+                    f"⏳ <b>Status:</b> Compilation is running...\n"
+                    f"📊 <b>Live Progress:</b> {last_stats} actions\n"
+                    f"⏱️ <b>Elapsed Time:</b> {time_str}"
+                )
+                last_update_time = current_time
+                
     process.wait()
     
     if process.returncode != 0:
         if not ignore_error:
             send_telegram(f"❌ <b>FAILED!</b>\n\n<b>Stage:</b> {fail_message}\n<b>Command:</b> <code>{command}</code>")
             sys.exit(1)
-        return False
-    return True
+        return False if not extract_stats else (False, last_stats)
+        
+    return True if not extract_stats else (True, last_stats)
 
 def setup_rclone():
     if not RCLONE_CONF:
@@ -137,9 +171,22 @@ def stage_build():
     ccache -M 50G
     timeout 95m bash -c 'source build/envsetup.sh && lunch qassa_{DEVICE_CODENAME}-userdebug && mka qassa'
     """
-    build_success = run_command(build_command, "ROM Compilation", ignore_error=True)
     
-    if not build_success:
+    start_time = time.time()
+    
+    build_success, build_stats = run_command(build_command, "ROM Compilation", ignore_error=True, extract_stats=True, live_update=True)
+    
+    end_time = time.time()
+    duration_secs = int(end_time - start_time)
+    
+    if build_success:
+        stats_data = {
+            "duration": duration_secs,
+            "stats": build_stats
+        }
+        with open("/tmp/build_stats.json", "w") as f:
+            json.dump(stats_data, f)
+    else:
         send_telegram("❌ <b>BUILD FAILED!</b>\n\nExecuting ccache rescue...")
         if use_ccache:
             send_telegram("☁️ <b>Status:</b> Saving ccache to Google Drive...")
@@ -150,6 +197,23 @@ def stage_build():
 def stage_upload():
     send_telegram("🔍 <b>Status:</b> Build successful! Checking MD5 and uploading ROM to Google Drive...")
     setup_rclone()
+    
+    duration_str = "Unknown"
+    build_stats = "Unknown"
+    if os.path.exists("/tmp/build_stats.json"):
+        with open("/tmp/build_stats.json", "r") as f:
+            stats_data = json.load(f)
+            
+            duration_secs = stats_data.get("duration", 0)
+            mins, secs = divmod(duration_secs, 60)
+            hours, mins = divmod(mins, 60)
+            
+            if hours > 0:
+                duration_str = f"{hours} hours, {mins} minutes, {secs} seconds"
+            else:
+                duration_str = f"{mins} minutes, {secs} seconds"
+                
+            build_stats = stats_data.get("stats", "Unknown")
     
     zip_file_list = glob.glob(f"out/target/product/{DEVICE_CODENAME}/qassa_*.zip")
     
@@ -177,6 +241,8 @@ def stage_upload():
                 f"✅ <b>BUILD & UPLOAD SUCCESSFUL!</b>\n\n"
                 f"📁 <b>File:</b> <code>{file_name}</code>\n"
                 f"🛡 <b>MD5:</b> <code>{md5_string}</code>\n"
+                f"⏱️ <b>Duration:</b> {duration_str}\n"
+                f"📊 <b>Build Stats:</b> {build_stats} actions\n"
                 f"🔗 <b>ROM Link:</b> <a href='{rom_link}'>Download here</a>"
             )
             send_telegram(success_message)
