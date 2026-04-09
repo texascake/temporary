@@ -42,22 +42,35 @@ def send_telegram(message):
         
     msg_id = get_message_id()
     
+    reply_markup_json = None
     if CIRRUS_TASK_ID:
         log_link = f"https://cirrus-ci.com/task/{CIRRUS_TASK_ID}"
-        link_text = f"🔗 <a href='{log_link}'>View Live Logs</a>"
+        link_text = "💡 <i>Click the button below to check real-time progress</i>"
+        
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "🔄 View Live Logs", "url": log_link}]
+            ]
+        }
+        reply_markup_json = json.dumps(keyboard)
     else:
         link_text = "🔗 <i>Log Link unavailable (Running Locally)</i>"
         
     base_text = f"🚀 <b>Build ROM for {DEVICE_CODENAME}</b>\n<b>ROM:</b> KeepQASSA ({ROM_BRANCH})\n{link_text}\n\n{message}"
     
+    payload = {
+        'chat_id': CHAT_ID,
+        'caption': base_text,
+        'parse_mode': 'HTML'
+    }
+    
+    if reply_markup_json:
+        payload['reply_markup'] = reply_markup_json
+        
     if msg_id is None:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
-        data = urllib.parse.urlencode({
-            'chat_id': CHAT_ID,
-            'photo': BANNER_IMAGE,
-            'caption': base_text,
-            'parse_mode': 'HTML'
-        }).encode('utf-8')
+        payload['photo'] = BANNER_IMAGE
+        data = urllib.parse.urlencode(payload).encode('utf-8')
         try:
             req = urllib.request.Request(url, data=data)
             with urllib.request.urlopen(req) as response:
@@ -68,14 +81,11 @@ def send_telegram(message):
             print(f"[Error] Initial Telegram: {e}", flush=True)
     else:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/editMessageCaption"
-        data = urllib.parse.urlencode({
-            'chat_id': CHAT_ID,
-            'message_id': msg_id,
-            'caption': base_text,
-            'parse_mode': 'HTML'
-        }).encode('utf-8')
+        payload['message_id'] = msg_id
+        data = urllib.parse.urlencode(payload).encode('utf-8')
         try:
-            urllib.request.urlopen(urllib.request.Request(url, data=data))
+            req = urllib.request.Request(url, data=data)
+            urllib.request.urlopen(req)
         except Exception as e:
             print(f"[Error] Edit Telegram: {e}", flush=True)
 
@@ -88,7 +98,7 @@ def run_command(command, fail_message, ignore_error=False, extract_stats=False, 
     
     start_time = time.time()
     last_update_time = start_time
-    interval_update = 300
+    interval_update = 120
     
     for line in process.stdout:
         decoded_line = line.decode('utf-8', errors='replace').strip()
@@ -233,7 +243,18 @@ def stage_upload():
             print(f"[Error] An error occurred while calculating MD5: {e}")
             
         try:
-            subprocess.check_call(f'rclone copy "{file_path}" "{drive_destination}/"', shell=True, executable='/bin/bash')
+            print(f"\n[INFO] Starting upload {file_name} to {drive_destination}...")
+            
+            # Added rclone flags to bypass Google Drive API rate limits
+            upload_command = f'rclone copy "{file_path}" "{drive_destination}/" -v --tpslimit 2 --transfers 1 --retries 5 --drive-chunk-size 64M'
+            upload_process = subprocess.run(upload_command, shell=True, executable='/bin/bash', capture_output=True, text=True)
+            
+            if upload_process.returncode != 0:
+                rclone_error_msg = upload_process.stderr.strip()
+                if not rclone_error_msg:
+                    rclone_error_msg = upload_process.stdout.strip()
+                raise Exception(f"Rclone Log:\n{rclone_error_msg[-500:]}")
+
             link_result = subprocess.check_output(f'rclone link "{drive_destination}/{file_name}"', shell=True, executable='/bin/bash')
             rom_link = link_result.decode('utf-8').strip()
             
@@ -247,8 +268,8 @@ def stage_upload():
             )
             send_telegram(success_message)
             
-        except subprocess.CalledProcessError as e:
-            send_telegram(f"⚠️ <b>Warning:</b> Build successful, but upload to Drive failed: {e}")
+        except Exception as e:
+            send_telegram(f"⚠️ <b>Warning:</b> Build successful, but upload to Drive failed:\n<code>{e}</code>")
     else:
         send_telegram("❌ <b>Error:</b> ROM .zip file not found in the output folder.")
 
