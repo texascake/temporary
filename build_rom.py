@@ -41,12 +41,11 @@ def send_telegram(message):
         return
         
     msg_id = get_message_id()
-    
     reply_markup_json = None
+    
     if CIRRUS_TASK_ID:
         log_link = f"https://cirrus-ci.com/task/{CIRRUS_TASK_ID}"
         link_text = "💡 <i>Click the button below to check real-time progress</i>"
-        
         keyboard = {
             "inline_keyboard": [
                 [{"text": "🔄 View Live Logs", "url": log_link}]
@@ -63,7 +62,6 @@ def send_telegram(message):
         'caption': base_text,
         'parse_mode': 'HTML'
     }
-    
     if reply_markup_json:
         payload['reply_markup'] = reply_markup_json
         
@@ -94,30 +92,39 @@ def run_command(command, fail_message, ignore_error=False, extract_stats=False, 
     process = subprocess.Popen(command, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     
     last_stats = "Unknown"
-    ninja_regex = re.compile(r'\[\s*\d+% (\d+/\d+)\]')
+    ninja_regex = re.compile(r'\[\s*\d+%?\s+(\d+/\d+)\]')
     
     start_time = time.time()
     last_update_time = start_time
-    interval_update = 120
+    interval_update = 120 # -- 2 minutes --
+    first_update_sent = False
     
-    for line in process.stdout:
+    for line in iter(process.stdout.readline, b''):
         decoded_line = line.decode('utf-8', errors='replace').strip()
-        print(decoded_line)
-        
+        if decoded_line:
+            print(decoded_line)
+            
         if extract_stats or live_update:
             match = ninja_regex.search(decoded_line)
             if match:
                 last_stats = match.group(1)
-        
+                
         if live_update:
             current_time = time.time()
-            if current_time - last_update_time >= interval_update:
-                elapsed_secs = int(current_time - start_time)
+            elapsed_since_start = current_time - start_time
+            is_time_to_update = False
+            
+            if not first_update_sent and elapsed_since_start >= 60:
+                is_time_to_update = True
+                first_update_sent = True
+            elif first_update_sent and (current_time - last_update_time >= interval_update):
+                is_time_to_update = True
+                
+            if is_time_to_update:
+                elapsed_secs = int(elapsed_since_start)
                 m, s = divmod(elapsed_secs, 60)
                 h, m = divmod(m, 60)
-                
                 time_str = f"{h} hours, {m} mins" if h > 0 else f"{m} mins, {s} secs"
-                
                 send_telegram(
                     f"⏳ <b>Status:</b> Compilation is running...\n"
                     f"📊 <b>Live Progress:</b> {last_stats} actions\n"
@@ -126,13 +133,11 @@ def run_command(command, fail_message, ignore_error=False, extract_stats=False, 
                 last_update_time = current_time
                 
     process.wait()
-    
     if process.returncode != 0:
         if not ignore_error:
             send_telegram(f"❌ <b>FAILED!</b>\n\n<b>Stage:</b> {fail_message}\n<b>Command:</b> <code>{command}</code>")
             sys.exit(1)
         return False if not extract_stats else (False, last_stats)
-        
     return True if not extract_stats else (True, last_stats)
 
 def setup_rclone():
@@ -183,9 +188,7 @@ def stage_build():
     """
     
     start_time = time.time()
-    
     build_success, build_stats = run_command(build_command, "ROM Compilation", ignore_error=True, extract_stats=True, live_update=True)
-    
     end_time = time.time()
     duration_secs = int(end_time - start_time)
     
@@ -196,6 +199,12 @@ def stage_build():
         }
         with open("/tmp/build_stats.json", "w") as f:
             json.dump(stats_data, f)
+            
+        # -- ADDITION: Upload ccache if build success --
+        if use_ccache:
+            send_telegram("☁️ <b>Status:</b> Saving updated ccache to Google Drive...")
+            run_command("tar -czf /tmp/ccache.tar.gz -C /tmp ccache && rclone copy /tmp/ccache.tar.gz queen:qassa/", "Upload Ccache", ignore_error=True)
+            
     else:
         send_telegram("❌ <b>BUILD FAILED!</b>\n\nExecuting ccache rescue...")
         if use_ccache:
@@ -213,18 +222,15 @@ def stage_upload():
     if os.path.exists("/tmp/build_stats.json"):
         with open("/tmp/build_stats.json", "r") as f:
             stats_data = json.load(f)
-            
             duration_secs = stats_data.get("duration", 0)
             mins, secs = divmod(duration_secs, 60)
             hours, mins = divmod(mins, 60)
-            
             if hours > 0:
                 duration_str = f"{hours} hours, {mins} minutes, {secs} seconds"
             else:
                 duration_str = f"{mins} minutes, {secs} seconds"
-                
             build_stats = stats_data.get("stats", "Unknown")
-    
+            
     zip_file_list = glob.glob(f"out/target/product/{DEVICE_CODENAME}/qassa_*.zip")
     
     if zip_file_list:
@@ -244,8 +250,6 @@ def stage_upload():
             
         try:
             print(f"\n[INFO] Starting upload {file_name} to {drive_destination}...")
-            
-            # Added rclone flags to bypass Google Drive API rate limits
             upload_command = f'rclone copy "{file_path}" "{drive_destination}/" -v --tpslimit 2 --transfers 1 --retries 5 --drive-chunk-size 64M'
             upload_process = subprocess.run(upload_command, shell=True, executable='/bin/bash', capture_output=True, text=True)
             
@@ -254,7 +258,7 @@ def stage_upload():
                 if not rclone_error_msg:
                     rclone_error_msg = upload_process.stdout.strip()
                 raise Exception(f"Rclone Log:\n{rclone_error_msg[-500:]}")
-
+                
             link_result = subprocess.check_output(f'rclone link "{drive_destination}/{file_name}"', shell=True, executable='/bin/bash')
             rom_link = link_result.decode('utf-8').strip()
             
@@ -267,7 +271,6 @@ def stage_upload():
                 f"🔗 <b>ROM Link:</b> <a href='{rom_link}'>Download here</a>"
             )
             send_telegram(success_message)
-            
         except Exception as e:
             send_telegram(f"⚠️ <b>Warning:</b> Build successful, but upload to Drive failed:\n<code>{e}</code>")
     else:
@@ -277,7 +280,6 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Please specify the stage: setup, sync, clone, build, upload")
         sys.exit(1)
-        
     stage = sys.argv[1]
     
     if stage == "setup":
