@@ -5,6 +5,8 @@ import urllib.request
 import urllib.parse
 import glob
 import json
+import time
+import re
 
 BOT_TOKEN = os.environ.get('TG_BOT_TOKEN')
 CHAT_ID = os.environ.get('TG_CHAT_ID')
@@ -13,165 +15,283 @@ GH_TOKEN = os.environ.get('GH_TOKEN')
 GH_USERNAME = os.environ.get('GH_USERNAME')
 CIRRUS_TASK_ID = os.environ.get('CIRRUS_TASK_ID')
 
-FILE_ID_PESAN = "/tmp/tg_msg.txt"
+MESSAGE_ID_FILE = "/tmp/tg_msg.txt"
+MANIFEST_LINK = "https://github.com/LineageOS-Revived/android.git"
+ROM_BRANCH = "lineage-17.1"
+DEVICE_CODENAME = "X00TD"
+BANNER_IMAGE = "https://github.com/texascake/texascake/raw/refs/heads/main/los.png"
 
-LINK_MANIFEST = "https://github.com/LineageOS-Revived/android.git"
-BRANCH_ROM = "lineage-17.1"
-CODENAME_DEVICE = "X00TD"
-GAMBAR_BANNER = "https://github.com/texascake/texascake/raw/refs/heads/main/los.png"
-
-REPOSITORI_PERANGKAT = [
+DEVICE_REPOSITORIES = [
     {"nama": "Device Tree", "url": "https://github.com/lineageos-q-mean/android_device_asus_X00TD.git", "branch": "lineage-17.1", "path": "device/asus/X00TD"},
     {"nama": "Vendor Tree", "url": "https://github.com/lineageos-q-mean/proprietary_vendor_asus.git", "branch": "lineage-17.1", "path": "vendor/asus"},
     {"nama": "Common Tree", "url": "https://github.com/lineageos-q-mean/android_device_asus_sdm660-common.git", "branch": "lineage-17.1", "path": "device/asus/sdm660-common"}
 ]
 
-def dapatkan_id_pesan():
-    if os.path.exists(FILE_ID_PESAN):
-        with open(FILE_ID_PESAN, 'r') as f: return f.read().strip()
+def get_message_id():
+    if os.path.exists(MESSAGE_ID_FILE):
+        with open(MESSAGE_ID_FILE, 'r') as f:
+            return f.read().strip()
     return None
 
-def simpan_id_pesan(msg_id):
-    with open(FILE_ID_PESAN, 'w') as f: f.write(str(msg_id))
+def save_message_id(msg_id):
+    with open(MESSAGE_ID_FILE, 'w') as f:
+        f.write(str(msg_id))
 
-def kirim_telegram(pesan):
-    if not BOT_TOKEN or not CHAT_ID: return
-    id_pesan = dapatkan_id_pesan()
+def send_telegram(message):
+    if not BOT_TOKEN or not CHAT_ID:
+        return
+        
+    msg_id = get_message_id()
+    reply_markup_json = None
     
     if CIRRUS_TASK_ID:
-        link_log = f"https://cirrus-ci.com/task/{CIRRUS_TASK_ID}"
-        teks_link = f"🔗 <a href='{link_log}'>View Live Logs</a>"
+        log_link = f"https://cirrus-ci.com/task/{CIRRUS_TASK_ID}"
+        link_text = "💡 <i>Click the button below to check real-time progress</i>"
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "🔄 View Live Logs", "url": log_link}]
+            ]
+        }
+        reply_markup_json = json.dumps(keyboard)
     else:
-        teks_link = "🔗 <i>Link Log tidak tersedia (Berjalan Lokal)</i>"
+        link_text = "🔗 <i>Log Link unavailable (Running Locally)</i>"
+        
+    base_text = f"🚀 <b>Build ROM for {DEVICE_CODENAME}</b>\n<b>ROM:</b> LineageOS ({ROM_BRANCH})\n{link_text}\n\n{message}"
     
-    teks_dasar = f"🚀 <b>Build ROM for {CODENAME_DEVICE}</b>\n<b>ROM:</b> LineageOS ({BRANCH_ROM})\n{teks_link}\n\n{pesan}"
-
-    if id_pesan is None:
+    payload = {
+        'chat_id': CHAT_ID,
+        'caption': base_text,
+        'parse_mode': 'HTML'
+    }
+    if reply_markup_json:
+        payload['reply_markup'] = reply_markup_json
+        
+    if msg_id is None:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
-        data = urllib.parse.urlencode({
-            'chat_id': CHAT_ID, 
-            'photo': GAMBAR_BANNER,
-            'caption': teks_dasar,
-            'parse_mode': 'HTML'
-        }).encode('utf-8')
+        payload['photo'] = BANNER_IMAGE
+        data = urllib.parse.urlencode(payload).encode('utf-8')
         try:
             req = urllib.request.Request(url, data=data)
-            with urllib.request.urlopen(req) as respons:
-                hasil = json.loads(respons.read().decode('utf-8'))
-                if hasil.get('ok'): simpan_id_pesan(hasil['result']['message_id'])
-        except Exception as e: print(f"[Error] Telegram Awal: {e}", flush=True)
-        
+            with urllib.request.urlopen(req) as response:
+                result = json.loads(response.read().decode('utf-8'))
+                if result.get('ok'):
+                    save_message_id(result['result']['message_id'])
+        except Exception as e:
+            print(f"[Error] Initial Telegram: {e}", flush=True)
     else:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/editMessageCaption"
-        data = urllib.parse.urlencode({
-            'chat_id': CHAT_ID, 
-            'message_id': id_pesan, 
-            'caption': teks_dasar,
-            'parse_mode': 'HTML'
-        }).encode('utf-8')
-        try: urllib.request.urlopen(urllib.request.Request(url, data=data))
-        except Exception as e: print(f"[Error] Telegram Edit: {e}", flush=True)
+        payload['message_id'] = msg_id
+        data = urllib.parse.urlencode(payload).encode('utf-8')
+        try:
+            req = urllib.request.Request(url, data=data)
+            urllib.request.urlopen(req)
+        except Exception as e:
+            print(f"[Error] Edit Telegram: {e}", flush=True)
 
-def jalankan_perintah(perintah, pesan_gagal, abaikan_error=False):
-    print(f"\n[INFO] Menjalankan: {perintah}\n" + "="*40)
-    proses = subprocess.Popen(perintah, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    for baris in proses.stdout: print(baris.decode('utf-8').strip())
-    proses.wait()
+def run_command(command, fail_message, ignore_error=False, extract_stats=False, live_update=False):
+    print(f"\n[INFO] Running: {command}\n" + "="*40)
+    process = subprocess.Popen(command, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     
-    if proses.returncode != 0:
-        if not abaikan_error:
-            kirim_telegram(f"❌ <b>GAGAL!</b>\n\n<b>Tahap:</b> {pesan_gagal}\n<b>Perintah:</b> <code>{perintah}</code>")
+    last_stats = "Unknown"
+    ninja_regex = re.compile(r'\[\s*\d+%?\s+(\d+/\d+)\]')
+    
+    start_time = time.time()
+    last_update_time = start_time
+    interval_update = 120 # -- 2 minutes --
+    first_update_sent = False
+    
+    for line in iter(process.stdout.readline, b''):
+        decoded_line = line.decode('utf-8', errors='replace').strip()
+        if decoded_line:
+            print(decoded_line)
+            
+        if extract_stats or live_update:
+            match = ninja_regex.search(decoded_line)
+            if match:
+                last_stats = match.group(1)
+                
+        if live_update:
+            current_time = time.time()
+            elapsed_since_start = current_time - start_time
+            is_time_to_update = False
+            
+            if not first_update_sent and elapsed_since_start >= 60:
+                is_time_to_update = True
+                first_update_sent = True
+            elif first_update_sent and (current_time - last_update_time >= interval_update):
+                is_time_to_update = True
+                
+            if is_time_to_update:
+                elapsed_secs = int(elapsed_since_start)
+                m, s = divmod(elapsed_secs, 60)
+                h, m = divmod(m, 60)
+                time_str = f"{h} hours, {m} mins" if h > 0 else f"{m} mins, {s} secs"
+                send_telegram(
+                    f"⏳ <b>Status:</b> Compilation is running...\n"
+                    f"📊 <b>Live Progress:</b> {last_stats} actions\n"
+                    f"⏱️ <b>Elapsed Time:</b> {time_str}"
+                )
+                last_update_time = current_time
+                
+    process.wait()
+    if process.returncode != 0:
+        if not ignore_error:
+            send_telegram(f"❌ <b>FAILED!</b>\n\n<b>Stage:</b> {fail_message}\n<b>Command:</b> <code>{command}</code>")
             sys.exit(1)
-    return proses.returncode == 0
+        return False if not extract_stats else (False, last_stats)
+    return True if not extract_stats else (True, last_stats)
 
-def siapkan_rclone():
-    if not RCLONE_CONF: return False
+def setup_rclone():
+    if not RCLONE_CONF:
+        return False
     os.makedirs(os.path.expanduser('~/.config/rclone'), exist_ok=True)
-    with open(os.path.expanduser('~/.config/rclone/rclone.conf'), 'w') as f: f.write(RCLONE_CONF)
+    with open(os.path.expanduser('~/.config/rclone/rclone.conf'), 'w') as f:
+        f.write(RCLONE_CONF)
     return True
 
-def tahap_setup():
-    kirim_telegram("🛠️ <b>Status:</b> Menyiapkan environment dan kredensial Git...")
-    jalankan_perintah("git config --global user.name 'Bot Cirrus CI'", "Git Name")
-    jalankan_perintah("git config --global user.email 'bot@cirrus.ci'", "Git Email")
+def stage_setup():
+    send_telegram("🛠️ <b>Status:</b> Setting up environment and Git credentials...")
+    run_command("git config --global user.name 'Bot Cirrus CI'", "Git Name")
+    run_command("git config --global user.email 'bot@cirrus.ci'", "Git Email")
     
     if GH_USERNAME and GH_TOKEN:
-        print("[INFO] Mengatur kredensial Git Privat...")
-        perintah_kredensial = f'git config --global url."https://{GH_USERNAME}:{GH_TOKEN}@github.com/".insteadOf "https://github.com/"'
-        subprocess.run(perintah_kredensial, shell=True)
+        print("[INFO] Setting up Private Git credentials...")
+        credential_cmd = f'git config --global url."https://{GH_USERNAME}:{GH_TOKEN}@github.com/".insteadOf "https://github.com/"'
+        subprocess.run(credential_cmd, shell=True)
         
-    jalankan_perintah(f"repo init -u {LINK_MANIFEST} -b {BRANCH_ROM} --depth=1", "Repo Init")
+    run_command(f"repo init -u {MANIFEST_LINK} -b {ROM_BRANCH} --depth=1", "Repo Init")
 
-def tahap_sync():
-    kirim_telegram("🔄 <b>Status:</b> Sinkronisasi source utama...")
-    jalankan_perintah("repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j$(nproc --all)", "Repo Sync")
-    
-    kirim_telegram("📦 <b>Status:</b> Menarik file Git LFS dari repo utama...")
-    jalankan_perintah("repo forall -c 'git lfs install --local && git lfs pull && git lfs checkout'", "Repo Forall Git LFS")
+def stage_sync():
+    send_telegram("🔄 <b>Status:</b> Syncing main source...")
+    run_command("repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j$(nproc --all)", "Repo Sync")
+    send_telegram("📦 <b>Status:</b> Pulling Git LFS files from main repo...")
+    run_command("repo forall -c 'git lfs install --local && git lfs pull && git lfs checkout'", "Repo Forall Git LFS")
 
-def tahap_clone():
-    kirim_telegram("📥 <b>Status:</b> Mengkloning Device, Vendor, dan Kernel Tree...")
-    for repo in REPOSITORI_PERANGKAT:
-        jalankan_perintah(f"rm -rf {repo['path']}", f"Clear {repo['path']}")
-        jalankan_perintah(f"git clone --depth=1 -b {repo['branch']} {repo['url']} {repo['path']}", f"Kloning {repo['nama']}")
+def stage_clone():
+    send_telegram("📥 <b>Status:</b> Cloning Device, Vendor, and Kernel Trees...")
+    for repo in DEVICE_REPOSITORIES:
+        run_command(f"rm -rf {repo['path']}", f"Clear {repo['path']}")
+        run_command(f"git clone --depth=1 -b {repo['branch']} {repo['url']} {repo['path']}", f"Clone {repo['name']}")
 
-def tahap_build():
-    gunakan_ccache = siapkan_rclone()
-    if gunakan_ccache:
-        kirim_telegram("🔄 <b>Status:</b> Mengunduh ccache dari Google Drive...")
-        jalankan_perintah("rclone copy queen:reload/ccache.tar.gz /tmp/ && tar -xzf /tmp/ccache.tar.gz -C /tmp", "Download Ccache", abaikan_error=True)
-
-    kirim_telegram("⏳ <b>Status:</b> Sedang memulai kompilasi...")
-    perintah_build = f"""
+def stage_build():
+    use_ccache = setup_rclone()
+    if use_ccache:
+        send_telegram("🔄 <b>Status:</b> Downloading ccache from Google Drive...")
+        run_command("rclone copy queen:reload/ccache.tar.gz /tmp/ && tar -xzf /tmp/ccache.tar.gz -C /tmp", "Download Ccache", ignore_error=True)
+        
+    send_telegram("⏳ <b>Status:</b> Starting compilation...")
+    build_command = f"""
     export USE_CCACHE=1
     export CCACHE_DIR=/tmp/ccache
     export CCACHE_EXEC=$(which ccache)
     ccache -M 50G
-    timeout 95m bash -c 'source build/envsetup.sh && breakfast {CODENAME_DEVICE} userdebug && brunch {CODENAME_DEVICE}'
+    timeout 95m bash -c 'source build/envsetup.sh && breakfast {DEVICE_CODENAME} user && brunch {DEVICE_CODENAME}'
     """
-    sukses_build = jalankan_perintah(perintah_build, "Kompilasi ROM", abaikan_error=True)
-
-    if not sukses_build:
-        kirim_telegram("❌ <b>BUILD GAGAL!</b>\n\nMengeksekusi penyelamatan ccache...")
-
-    if gunakan_ccache:
-        kirim_telegram("☁️ <b>Status:</b> Menyimpan ccache ke Google Drive...")
-        jalankan_perintah("tar -czf /tmp/ccache.tar.gz -C /tmp ccache && rclone copy /tmp/ccache.tar.gz queen:reload/", "Upload Ccache")
-
-    if not sukses_build:
-        kirim_telegram("ℹ️ <b>Info:</b> Ccache telah diamankan. Skrip dihentikan karena build error.")
+    
+    start_time = time.time()
+    build_success, build_stats = run_command(build_command, "ROM Compilation", ignore_error=True, extract_stats=True, live_update=True)
+    end_time = time.time()
+    duration_secs = int(end_time - start_time)
+    
+    if build_success:
+        stats_data = {
+            "duration": duration_secs,
+            "stats": build_stats
+        }
+        with open("/tmp/build_stats.json", "w") as f:
+            json.dump(stats_data, f)
+            
+        # -- ADDITION: Upload ccache if build success --
+        if use_ccache:
+            send_telegram("☁️ <b>Status:</b> Saving updated ccache to Google Drive...")
+            run_command("tar -czf /tmp/ccache.tar.gz -C /tmp ccache && rclone copy /tmp/ccache.tar.gz queen:reload/", "Upload Ccache", ignore_error=True)
+            
+    else:
+        send_telegram("❌ <b>BUILD FAILED!</b>\n\nExecuting ccache rescue...")
+        if use_ccache:
+            send_telegram("☁️ <b>Status:</b> Saving ccache to Google Drive...")
+            run_command("tar -czf /tmp/ccache.tar.gz -C /tmp ccache && rclone copy /tmp/ccache.tar.gz queen:reload/", "Upload Ccache")
+        send_telegram("ℹ️ <b>Info:</b> Ccache has been secured. Script terminated due to build error.")
         sys.exit(1)
 
-def tahap_upload():
-    kirim_telegram("🔍 <b>Status:</b> Build sukses! Mengunggah ROM ke Google Drive...")
-    siapkan_rclone()
+def stage_upload():
+    send_telegram("🔍 <b>Status:</b> Build successful! Checking MD5 and uploading ROM to Google Drive...")
+    setup_rclone()
     
-    daftar_file_zip = glob.glob(f"out/target/product/{CODENAME_DEVICE}/lineage-*.zip")
-    if daftar_file_zip:
-        path_file = daftar_file_zip[0]
-        nama_file = os.path.basename(path_file)
-        tujuan_drive = "queen:ROM_Builds"
+    duration_str = "Unknown"
+    build_stats = "Unknown"
+    if os.path.exists("/tmp/build_stats.json"):
+        with open("/tmp/build_stats.json", "r") as f:
+            stats_data = json.load(f)
+            duration_secs = stats_data.get("duration", 0)
+            mins, secs = divmod(duration_secs, 60)
+            hours, mins = divmod(mins, 60)
+            if hours > 0:
+                duration_str = f"{hours} hours, {mins} minutes, {secs} seconds"
+            else:
+                duration_str = f"{mins} minutes, {secs} seconds"
+            build_stats = stats_data.get("stats", "Unknown")
+            
+    zip_file_list = glob.glob(f"out/target/product/{DEVICE_CODENAME}/lineage-*.zip")
+    
+    if zip_file_list:
+        file_path = zip_file_list[0]
+        file_name = os.path.basename(file_path)
+        drive_destination = "queen:ROM_Builds"
         
         try:
-            subprocess.check_call(f'rclone copy "{path_file}" "{tujuan_drive}/"', shell=True, executable='/bin/bash')
-            hasil_link = subprocess.check_output(f'rclone link "{tujuan_drive}/{nama_file}"', shell=True, executable='/bin/bash')
-            link_rom = hasil_link.decode('utf-8').strip()
-            kirim_telegram(f"✅ <b>BUILD & UPLOAD BERHASIL!</b>\n\n<b>Link ROM:</b> {link_rom}")
-        except subprocess.CalledProcessError as e:
-            kirim_telegram(f"⚠️ <b>Peringatan:</b> Build sukses, tapi upload ke Drive gagal: {e}")
+            print(f"\n[INFO] Calculating MD5 for {file_name}...")
+            md5_command = f"md5sum '{file_path}' | awk '{{print $1}}'"
+            raw_md5_result = subprocess.check_output(md5_command, shell=True, executable='/bin/bash')
+            md5_string = raw_md5_result.decode('utf-8').strip()
+            print(f"[INFO] MD5 successfully obtained: {md5_string}")
+        except Exception as e:
+            md5_string = "Failed to calculate MD5"
+            print(f"[Error] An error occurred while calculating MD5: {e}")
+            
+        try:
+            print(f"\n[INFO] Starting upload {file_name} to {drive_destination}...")
+            upload_command = f'rclone copy "{file_path}" "{drive_destination}/" -v --tpslimit 2 --transfers 1 --retries 5 --drive-chunk-size 64M'
+            upload_process = subprocess.run(upload_command, shell=True, executable='/bin/bash', capture_output=True, text=True)
+            
+            if upload_process.returncode != 0:
+                rclone_error_msg = upload_process.stderr.strip()
+                if not rclone_error_msg:
+                    rclone_error_msg = upload_process.stdout.strip()
+                raise Exception(f"Rclone Log:\n{rclone_error_msg[-500:]}")
+                
+            link_result = subprocess.check_output(f'rclone link "{drive_destination}/{file_name}"', shell=True, executable='/bin/bash')
+            rom_link = link_result.decode('utf-8').strip()
+            
+            success_message = (
+                f"✅ <b>BUILD & UPLOAD SUCCESSFUL!</b>\n\n"
+                f"📁 <b>File:</b> <code>{file_name}</code>\n"
+                f"🛡 <b>MD5:</b> <code>{md5_string}</code>\n"
+                f"⏱️ <b>Duration:</b> {duration_str}\n"
+                f"📊 <b>Build Stats:</b> {build_stats} actions\n"
+                f"🔗 <b>ROM Link:</b> <a href='{rom_link}'>Download here</a>"
+            )
+            send_telegram(success_message)
+        except Exception as e:
+            send_telegram(f"⚠️ <b>Warning:</b> Build successful, but upload to Drive failed:\n<code>{e}</code>")
     else:
-        kirim_telegram("❌ <b>Error:</b> File .zip ROM tidak ditemukan di folder output.")
+        send_telegram("❌ <b>Error:</b> ROM .zip file not found in the output folder.")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Tolong sebutkan tahapannya: setup, sync, clone, build, upload")
+        print("Please specify the stage: setup, sync, clone, build, upload")
         sys.exit(1)
-        
-    tahap = sys.argv[1]
+    stage = sys.argv[1]
     
-    if tahap == "setup": tahap_setup()
-    elif tahap == "sync": tahap_sync()
-    elif tahap == "clone": tahap_clone()
-    elif tahap == "build": tahap_build()
-    elif tahap == "upload": tahap_upload()
-    else: print("Tahapan tidak dikenal!")
+    if stage == "setup":
+        stage_setup()
+    elif stage == "sync":
+        stage_sync()
+    elif stage == "clone":
+        stage_clone()
+    elif stage == "build":
+        stage_build()
+    elif stage == "upload":
+        stage_upload()
+    else:
+        print("Unknown stage!")
