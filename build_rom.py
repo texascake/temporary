@@ -22,9 +22,9 @@ DEVICE_CODENAME = "X00TD"
 BANNER_IMAGE = "https://github.com/texascake/texascake/raw/refs/heads/main/los.png"
 
 DEVICE_REPOSITORIES = [
-    {"nama": "Device Tree", "url": "https://github.com/lineageos-q-mean/android_device_asus_X00TD.git", "branch": "lineage-17.1", "path": "device/asus/X00TD"},
-    {"nama": "Vendor Tree", "url": "https://github.com/lineageos-q-mean/proprietary_vendor_asus.git", "branch": "lineage-17.1", "path": "vendor/asus"},
-    {"nama": "Common Tree", "url": "https://github.com/lineageos-q-mean/android_device_asus_sdm660-common.git", "branch": "lineage-17.1", "path": "device/asus/sdm660-common"}
+    {"name": "Device Tree", "url": "https://github.com/lineageos-q-mean/android_device_asus_X00TD.git", "branch": "lineage-17.1", "path": "device/asus/X00TD"},
+    {"name": "Vendor Tree", "url": "https://github.com/lineageos-q-mean/proprietary_vendor_asus.git", "branch": "lineage-17.1", "path": "vendor/asus"},
+    {"name": "Common Tree", "url": "https://github.com/lineageos-q-mean/android_device_asus_sdm660-common.git", "branch": "lineage-17.1", "path": "device/asus/sdm660-common"}
 ]
 
 def get_message_id():
