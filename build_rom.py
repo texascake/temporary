@@ -56,7 +56,7 @@ def send_telegram(message):
     else:
         link_text = "🔗 <i>Log Link unavailable (Running Locally)</i>"
         
-    base_text = f"🚀 <b>Build ROM for {DEVICE_CODENAME}</b>\n<b>ROM:</b> LineageOS ({ROM_BRANCH})\n{link_text}\n\n{message}"
+    base_text = f"🚀 <b>Build ROM for {DEVICE_CODENAME}</b>\n<b>ROM:</b> LineageOS-Revived ({ROM_BRANCH})\n{link_text}\n\n{message}"
     
     payload = {
         'chat_id': CHAT_ID,
