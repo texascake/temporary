@@ -16,7 +16,7 @@ GH_USERNAME = os.environ.get('GH_USERNAME')
 CIRRUS_TASK_ID = os.environ.get('CIRRUS_TASK_ID')
 
 MESSAGE_ID_FILE = "/tmp/tg_msg.txt"
-MANIFEST_LINK = "https://github.com/LineageOS-Revived/android.git"
+MANIFEST_LINK = "https://github.com/lineageos-q-mean/android.git"
 ROM_BRANCH = "lineage-17.1"
 DEVICE_CODENAME = "X00TD"
 BANNER_IMAGE = "https://github.com/texascake/texascake/raw/refs/heads/main/los.png"
@@ -56,7 +56,7 @@ def send_telegram(message):
     else:
         link_text = "🔗 <i>Log Link unavailable (Running Locally)</i>"
         
-    base_text = f"🚀 <b>Build ROM for {DEVICE_CODENAME}</b>\n<b>ROM:</b> LineageOS-Revived ({ROM_BRANCH})\n{link_text}\n\n{message}"
+    base_text = f"🚀 <b>Build ROM for {DEVICE_CODENAME}</b>\n<b>ROM:</b> LineageOS ({ROM_BRANCH})\n{link_text}\n\n{message}"
     
     payload = {
         'chat_id': CHAT_ID,
