@@ -251,7 +251,7 @@ def stage_upload():
             
         try:
             print(f"\n[INFO] Starting upload {file_name} to {drive_destination}...")
-            upload_command = f'rclone copy "{file_path}" "{drive_destination}/" -v --tpslimit 2 --transfers 1 --retries 5 --drive-chunk-size 64M'
+            upload_command = f'rclone copy "{file_path}" "{drive_destination}/" --progress -v --tpslimit 2 --transfers 1 --retries 5 --drive-chunk-size 64M'
             upload_process = subprocess.run(upload_command, shell=True, executable='/bin/bash', capture_output=True, text=True)
             
             if upload_process.returncode != 0:
